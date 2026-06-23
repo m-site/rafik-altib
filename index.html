@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedQuiz 🩺</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+</head>
+<body class="light-theme">
+
+    <div id="global-timer">00:00</div>
+
+    <div class="container" id="main-app">
+        <header class="header">
+            <div class="logo-text">🩺 MedQuiz</div>
+            <div class="nav-row">
+                <button class="btn-nav btn-pink" onclick="openModal('comp')">📑 شكاوى واقتراحات</button>
+                <button class="theme-toggle" onclick="toggleTheme()" id="t-icon">☀️</button>
+                <button class="btn-nav btn-blue" onclick="openModal('score')">📊 سجل درجاتك</button>
+            </div>
+        </header>
+
+        <div id="home-view" class="quiz-card" style="text-align:center; display:none;">
+            <div class="ai-banner-box">
+        📢 دكتور، خلي بالك: المحتوى ده معمول بمساعدة الذكاء الاصطناعي (AI)، فممكن تلاقي بعض الأخطاء العلمية البسيطة. لو واجهت أي مشكلة، يا ريت تبلغنا من قسم (شكاوى واقتراحات).
+    </div>
+            <h2 style="font-weight:900; margin-top:20px;">أهلاً بك يا دكتور.. 👨‍⚕️</h2>
+           
+            <a href="https://t.me/MEDQUIZ2026" target="_blank" class="btn-nav btn-blue" style="text-decoration:none; display:block; margin:25px 0; padding:15px;">للمزيد من الاختبارات اضغط هنا 📢</a>
+            <button class="btn-nav btn-pink" style="width:auto; padding:12px 35px;" onclick="openModal('errors')">⚠️ بنك أخطائك السابقة</button>
+        </div>
+
+        <div id="lecture-view" style="display:none;">
+            
+            <div class="nav-row" style="margin-bottom: 25px;">
+                <button class="btn-nav btn-pink" style="padding:10px 20px;" onclick="openModal('errors')">⚠️ أخطائك</button>
+                <a href="https://t.me/MEDQUIZ2026" target="_blank" class="btn-nav btn-blue" style="padding:10px 20px;">📢 للمزيد من الاختبارات اضغط هنا</a>
+            </div>
+
+            <div id="setup-wizard">
+                <div class="lecture-title-container">
+                    <h2 id="lec-title-display" style="color:var(--primary); font-weight:900; margin:0; text-align:center;"></h2>
+                    <button class="btn-nav btn-pink btn-share-small" onclick="copyCurrentLink()">🔗 مشاركة اللينك</button>
+                </div>
+                
+                <div id="step-1" class="setup-step active">
+                    <h3>1️⃣ حابب تمتحن على إيه؟</h3>
+                    <button class="config-btn" onclick="setScope('all')">المحاضرة كاملة</button>
+                    <button class="config-btn" style="border-color:var(--error); color:var(--error);" onclick="setScope('errors')">أخطائك السابقة فقط ⚠️</button>
+                    <button class="config-btn" onclick="showPartsGrid()">أجزاء معينة</button>
+                    <div id="parts-selection-grid" style="display:none; margin-top:15px; grid-template-columns:1fr 1fr; gap:10px;"></div>
+                    <button id="p-next-wizard" class="btn-nav btn-blue" style="display:none; width:100%; margin-top:15px;" onclick="setScope('custom')">التالي ➡️</button>
+                </div>
+
+                <div id="step-2" class="setup-step">
+                    <h3>2️⃣ محتاج كام سؤال؟ <span style="font-size:0.9rem; color:var(--primary);">(المتاح: <span id="max-q-count">0</span>)</span></h3>
+                    <input type="number" id="q-limit-input" min="1" style="width:100%; padding:18px; border-radius:20px; border:2px solid var(--border); text-align:center; font-size:1.4rem; font-weight:900;">
+                    <button class="btn-nav btn-blue" style="margin-top:20px; width:100%; padding:16px;" onclick="applyLimit()">التالي ➡️</button>
+                </div>
+
+                <div id="step-3" class="setup-step">
+                    <h3>3️⃣ طريقة عرض الإجابات؟</h3>
+                    <button class="config-btn" onclick="setMode('instant')">تصحيح فوري (مع شرح مفصل)</button>
+                    <button class="config-btn" onclick="setMode('exam')">نظام امتحان (النتيجة والمراجعة في النهاية)</button>
+                </div>
+
+                <div id="step-4" class="setup-step">
+                    <h3>4️⃣ وقت الاختبار؟</h3>
+                    <button class="config-btn" onclick="startFinalQuiz(false)">بدون وقت (مفتوح)</button>
+                    <button class="config-btn" onclick="startFinalQuiz(true)">بوقت (٤٥ ثانية للسؤال) ⏱️</button>
+                </div>
+            </div>
+
+            <div id="quiz-feed-area"></div>
+
+            <div id="result-view" class="quiz-card" style="display:none; text-align:center;">
+                <h2 style="font-weight:900; color:var(--text);">النتيجة النهائية 📊</h2>
+                <div id="final-pct-display" style="font-size:4.5rem; font-weight:900; color:var(--primary); margin:10px 0;">0%</div>
+                <div id="final-raw-score" style="font-weight:bold; color:#64748b; margin-bottom:15px; font-size:1.2rem;">0 / 0</div>
+                
+                <h3 id="final-phrase" style="margin-bottom:20px; line-height:1.5;"></h3>
+                
+                <div id="revision-alert" style="display:none; background:#fff1f2; padding:15px; border-radius:20px; text-align:right; margin-bottom:20px;">
+                    <h4 style="color:#991b1b; margin:0;">⚠️ أجزاء تحتاج مراجعة (أقل من 60%):</h4>
+                    <ul id="rev-parts-list" style="color:#b91c1c; font-weight:bold;"></ul>
+                </div>
+                
+                <button class="btn-nav btn-pink" style="width:100%; padding:16px; margin-bottom:12px; font-size:1rem;" onclick="shareScoreForCompetition()">🚀 مشاركة النتيجة للمنافسة</button>
+                <button class="btn-nav btn-blue" style="width:100%; padding:16px; margin-bottom:20px; font-size:1rem;" onclick="location.reload()">إعادة الاختبار 🔄</button>
+
+                <div id="exam-review-list" style="text-align:right;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-comp" class="modal-overlay"><div class="modal-card"><span class="close-btn" onclick="closeModal('comp')">✖️</span><h3>💡 شكوى أو اقتراح</h3><textarea id="comp-msg-box" style="width:100%; height:120px; border-radius:15px; padding:15px; margin-top:15px;" placeholder="اكتب شكوتك أو اقتراحك هنا يا دكتور..."></textarea><button class="btn-nav btn-blue" style="width:100%; margin-top:15px;" onclick="sendComplaint()">إرسال ✅</button></div></div>
+    <div id="modal-score" class="modal-overlay"><div class="modal-card"><span class="close-btn" onclick="closeModal('score')">✖️</span><h3>📊 سجل التقدم (أرشيفك)</h3><div id="history-content-list" style="margin-top:15px; max-height:350px; overflow-y:auto; text-align:right;"></div></div></div>
+    <div id="modal-errors" class="modal-overlay"><div class="modal-card"><span class="close-btn" onclick="closeModal('errors')">✖️</span><h3>⚠️ بنك الأخطاء</h3><div id="errors-content-list" style="margin-top:15px; text-align:right; max-height:400px; overflow-y:auto;"></div></div></div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyAElUTnaXitLw35Hb55kQWoe1AdbGO1t8A", authDomain: "medquiz2026.firebaseapp.com", projectId: "medquiz2026", storageBucket: "medquiz2026.firebasestorage.app", messagingSenderId: "840399052520", appId: "1:840399052520:web:1181e6fcd93696b679335d" };
+        firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
+
+        // نظام استقبال التحديثات الحية
+        async function applyStudentLiveUpdates() {
+            try {
+                const snap = await db.collection('live_updates').where('target', '==', 'student').get();
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.type === 'js') { const script = document.createElement('script'); script.innerHTML = d.code; document.body.appendChild(script); }
+                    else if (d.type === 'css') { const style = document.createElement('style'); style.innerHTML = d.code; document.head.appendChild(style); }
+                    else if (d.type === 'html') { const div = document.createElement('div'); div.innerHTML = d.code; document.body.appendChild(div); }
+                });
+            } catch(e) { console.error("OTA Error:", e); }
+        }
+        applyStudentLiveUpdates();
+
+        let state = { all: [], active: [], idx: 0, score: 0, cfg: {m:'', t:false, l:0}, title: '', id: '', parts: {}, timer: null };
+        
+        // دالة نسخ الرابط بجوار العنوان
+        function copyCurrentLink() { 
+            const el = document.createElement("input"); el.value = window.location.href; 
+            document.body.appendChild(el); el.select(); document.execCommand("copy"); document.body.removeChild(el); 
+            alert("✅ تم نسخ رابط المحاضرة بنجاح!"); 
+        }
+
+        // دالة مشاركة النتيجة
+        function shareScoreForCompetition() {
+            const pct = Math.round((state.score / state.cfg.l) * 100);
+            const txt = `أنهيت اختبار "${state.title}" بنسبة ${pct}% 🎯\nعلى موقع MedQuiz 🩺\nهل يمكنك تحطيم رقمي؟\n${window.location.href}`;
+            if (navigator.share) { navigator.share({ title: 'تحدي MedQuiz', text: txt }); } else { prompt("انسخ هذه الرسالة وشاركها مع زملائك:", txt); }
+        }
+
+        window.onload = async () => {
+            const id = new URLSearchParams(window.location.search).get('id');
+            db.collection('analytics').doc('global').set({ total_visits: firebase.firestore.FieldValue.increment(1) }, {merge: true});
+            if (id) {
+                const doc = await db.collection('lectures').doc(id).get();
+                if (doc.exists) {
+                    document.getElementById('lecture-view').style.display = 'block';
+                    state.all = doc.data().questions; state.title = doc.data().title; state.id = id;
+                    document.getElementById('lec-title-display').innerText = state.title;
+                } else { document.getElementById('home-view').style.display = 'block'; }
+            } else { document.getElementById('home-view').style.display = 'block'; }
+        };
+
+        function nextS(c) { document.getElementById(`step-${c}`).classList.remove('active'); document.getElementById(`step-${c+1}`).classList.add('active'); }
+
+        function showPartsGrid() {
+            const p = [...new Set(state.all.map(q => q.p))];
+            const g = document.getElementById('parts-selection-grid'); g.innerHTML = '';
+            p.forEach(x => g.innerHTML += `<div class="config-btn" onclick="this.classList.toggle('selected')" data-p="${x}">${x}</div>`);
+            g.style.display = 'grid'; document.getElementById('p-next-wizard').style.display = 'block';
+        }
+
+        function setScope(t) {
+            if(t==='all') { state.active = [...state.all]; } 
+            else if(t==='errors') {
+                const savedErrors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+                const errQTexts = savedErrors.map(e => e.q);
+                state.active = state.all.filter(q => errQTexts.includes(q.q));
+                if(state.active.length === 0) return alert("ممتاز! ليس لديك أخطاء مسجلة في هذه المحاضرة 🥳");
+            } else { 
+                const s = Array.from(document.querySelectorAll('.selected')).map(e => e.dataset.p); 
+                state.active = state.all.filter(q => s.includes(q.p)); 
+            }
+            document.getElementById('max-q-count').innerText = state.active.length;
+            document.getElementById('q-limit-input').max = state.active.length;
+            document.getElementById('q-limit-input').value = state.active.length;
+            nextS(1);
+        }
+
+        function applyLimit() { 
+            let val = parseInt(document.getElementById('q-limit-input').value);
+            if (isNaN(val) || val < 1) val = 1; if (val > state.active.length) val = state.active.length;
+            state.cfg.l = val; nextS(2); 
+        }
+
+        function setMode(m) { state.cfg.m = m; nextS(3); }
+
+        function startFinalQuiz(t) {
+            state.cfg.t = t; state.active = state.active.sort(() => Math.random() - 0.5).slice(0, state.cfg.l);
+            document.getElementById('setup-wizard').style.display = 'none';
+            if(t) startTimer(); renderQ();
+        }
+
+        function renderQ() {
+            const q = state.active[state.idx];
+            const card = document.createElement('div'); card.className = 'stack-card';
+            // تنسيق السؤال الجديد
+            card.innerHTML = `<div class="landmark-box"><span class="part-tag">${q.p}</span></div><div class="question-text">${q.q}</div><div id="opts-cont-${state.idx}"></div><div id="fb-cont-${state.idx}"></div>`;
+            document.getElementById('quiz-feed-area').appendChild(card);
+            
+            const grid = card.querySelector(`#opts-cont-${state.idx}`);
+            [...q.options].sort(() => Math.random() - 0.5).forEach((opt, i) => {
+                const d = document.createElement('div'); d.className = 'option'; d.innerHTML = `<b>${String.fromCharCode(65+i)}</b> ${opt}`;
+                d.onclick = () => handleAnswer(opt, q, d, state.idx); grid.appendChild(d);
+            });
+            card.scrollIntoView({behavior:'smooth'});
+        }
+
+        function handleAnswer(sel, qObj, element, idx) {
+            const grid = document.getElementById(`opts-cont-${idx}`);
+            qObj.userAnswer = sel; 
+
+            if (state.cfg.m === 'exam') {
+                Array.from(grid.children).forEach(c => c.classList.remove('selected-temp'));
+                element.classList.add('selected-temp');
+            } else {
+                if (grid.classList.contains('locked')) return; grid.classList.add('locked');
+                if (sel === qObj.a) { element.classList.add('correct'); } 
+                else { 
+                    element.classList.add('wrong');
+                    Array.from(grid.children).forEach(c => { if(c.innerText.includes(qObj.a)) c.classList.add('correct'); });
+                }
+                // تنسيق الشرح التفصيلي
+                if (qObj.d) { document.getElementById(`fb-cont-${idx}`).innerHTML += `<div class="explanation-box">💡 <b>الشرح التفصيلي:</b> ${qObj.d}</div>`; }
+            }
+            showNextButton(idx);
+        }
+
+        function showNextButton(idx) {
+            if(document.getElementById(`next-btn-act-${idx}`)) return;
+            const b = document.createElement('button'); b.id = `next-btn-act-${idx}`; b.className = 'btn-nav btn-blue'; b.style.marginTop = '20px'; b.innerText = "السؤال التالي ➡️";
+            b.onclick = () => { b.style.display = 'none'; if(state.idx < state.cfg.l - 1) { state.idx++; renderQ(); } else { finalize(); } };
+            document.getElementById(`fb-cont-${idx}`).appendChild(b);
+        }
+
+        function finalize() {
+            clearInterval(state.timer); document.getElementById('quiz-feed-area').style.display = 'none'; document.getElementById('global-timer').style.display = 'none'; document.getElementById('result-view').style.display = 'block';
+            
+            state.score = 0; state.parts = {};
+            state.active.forEach(q => {
+                if(!state.parts[q.p]) state.parts[q.p] = {c:0, t:0};
+                state.parts[q.p].t++;
+                if(q.userAnswer === q.a) { state.score++; state.parts[q.p].c++; } 
+                else if (q.userAnswer) { saveToErrors(q); } 
+            });
+
+            const pct = Math.round((state.score / state.cfg.l) * 100);
+            document.getElementById('final-pct-display').innerText = pct + '%'; document.getElementById('final-raw-score').innerText = `${state.score} / ${state.cfg.l}`;
+            
+            // العبارات الكاملة
+            let phrase = "";
+            if (pct >= 85) { phrase = "أداء استثنائي يا دكتور! تستحق وسام التميز الطبي 🥇🏆"; confetti({particleCount:200, spread:80, origin:{y:0.6}}); }
+            else if (pct >= 75) phrase = "جيد جداً! مجهود محترم ولكن يمكنك الوصول للقمة 💪";
+            else if (pct >= 60) phrase = "مقبول، ولكن هذا الجزء يحتاج لمراجعة أعمق لتثبيت المعلومة 📚";
+            else phrase = "لا تيأس! راجع أخطائك بتركيز وحاول مرة أخرى، أنت قادر على تجاوزها 🩺";
+            
+            let phEl = document.getElementById('final-phrase'); phEl.innerText = phrase; phEl.style.color = (pct < 60) ? "var(--error)" : "var(--success)";
+            
+            const revList = document.getElementById('rev-parts-list'); revList.innerHTML = ''; let needsRev = false;
+            for(let p in state.parts) { let pPct = (state.parts[p].c / state.parts[p].t) * 100; if(pPct < 60) { needsRev = true; revList.innerHTML += `<li>${p} (${Math.round(pPct)}%)</li>`; } }
+            document.getElementById('revision-alert').style.display = needsRev ? 'block' : 'none';
+            
+            // המراجعة التفصيلية للاختبار
+            let reviewHTML = '<h3 style="margin-top:35px; border-bottom:2px solid var(--border); padding-bottom:10px; color:var(--text);">📋 المراجعة التفصيلية للاختبار:</h3>';
+            state.active.forEach((q, i) => {
+                let isCorrect = q.userAnswer === q.a;
+                let color = isCorrect ? 'var(--success)' : 'var(--error)';
+                reviewHTML += `
+                <div style="background:var(--bg); padding:20px; border-radius:18px; margin-bottom:15px; text-align:right; border-right: 6px solid ${color};">
+                    <p style="font-weight:900; margin-top:0; color:var(--text); font-size:1.1rem;">${i+1}. ${q.q}</p>
+                    <p style="margin:8px 0; font-size:1rem;">إجابتك: <span style="color:${color}; font-weight:bold;">${q.userAnswer || 'لم يُجب'}</span></p>
+                    ${!isCorrect ? `<p style="margin:8px 0; font-size:1rem;">الإجابة الصحيحة: <span style="color:var(--success); font-weight:bold;">${q.a}</span></p>` : ''}
+                    ${q.d ? `<div class="explanation-box" style="margin-top:15px;">💡 <b>الشرح التفصيلي:</b> ${q.d}</div>` : ''}
+                </div>`;
+            });
+            document.getElementById('exam-review-list').innerHTML = reviewHTML;
+
+            saveHistory(pct);
+            db.collection('lectures').doc(state.id).update({ views: firebase.firestore.FieldValue.increment(1), subs: firebase.firestore.FieldValue.increment(1), avg_score: firebase.firestore.FieldValue.increment(pct) });
+        }
+
+        function startTimer() { let s = state.cfg.l * 45; document.getElementById('global-timer').style.display = 'block'; state.timer = setInterval(() => { s--; let m = Math.floor(s/60), sec = s%60; document.getElementById('global-timer').innerText = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; if(s <= 0) { clearInterval(state.timer); finalize(); } }, 1000); }
+        function toggleTheme() { document.body.classList.toggle('dark-theme'); document.getElementById('t-icon').innerText = document.body.classList.contains('dark-theme') ? '🌙' : '☀️'; }
+        function openModal(t) { document.getElementById(`modal-${t}`).style.display = 'flex'; if(t==='score') loadHistoryUI(); if(t==='errors') loadErrorsUI(); }
+        function closeModal(t) { document.getElementById(`modal-${t}`).style.display = 'none'; }
+        
+        function saveToErrors(q) { let e = JSON.parse(localStorage.getItem('mq_e') || '[]'); if(!e.find(x=>x.q===q.q)) e.push(q); localStorage.setItem('mq_e', JSON.stringify(e)); }
+        function saveHistory(p) { let h = JSON.parse(localStorage.getItem('mq_h') || '[]'); h.push({t:state.title, s:p, d:new Date().toLocaleDateString()}); localStorage.setItem('mq_h', JSON.stringify(h)); }
+        
+        function loadHistoryUI() { const h = JSON.parse(localStorage.getItem('mq_h') || '[]'); document.getElementById('history-content-list').innerHTML = h.length === 0 ? "<p>لا يوجد سجل اختبارات حتى الآن.</p>" : h.map(x=>`<div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid var(--border); font-size:1.1rem; font-weight:bold;"><span>${x.t}</span><b style="color:var(--primary);">${x.s}%</b></div>`).join(''); }
+        function loadErrorsUI() { const e = JSON.parse(localStorage.getItem('mq_e') || '[]'); document.getElementById('errors-content-list').innerHTML = e.length === 0 ? "<p>ليس لديك أخطاء مسجلة، استمر في تفوقك!</p>" : e.map(x=>`<div style="background:var(--bg); padding:18px; border-radius:15px; margin-bottom:12px;"><b style="font-size:1.1rem;">${x.q}</b><br><small style="color:var(--success); font-weight:bold; font-size:1rem; display:block; margin-top:8px;">الصح: ${x.a}</small></div>`).join(''); }
+        
+        async function sendComplaint() { const m = document.getElementById('comp-msg-box').value; if(!m) return alert('يرجى كتابة الشكوى أولاً'); await db.collection('complaints').add({text:m, lec:state.title || 'الرئيسية', time:firebase.firestore.FieldValue.serverTimestamp()}); alert('تم الإرسال!'); document.getElementById('comp-msg-box').value = ''; closeModal('comp'); }
+    </script>
+</body>
+</html>

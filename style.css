@@ -1,0 +1,177 @@
+/* MEDQUIZ - MASTER STYLESHEET (الإصدار الجمالي والاحترافي) */
+:root {
+    --bg: #f4f7fa; 
+    --card: #ffffff; 
+    --text: #1e293b; 
+    --primary: #3b82f6; 
+    --primary-light: #eff6ff; 
+    --accent: #ec4899; 
+    --border: #e2e8f0;
+    --success: #10b981; 
+    --error: #ef4444; 
+    --shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+body.dark-theme {
+    --bg: #0f172a; 
+    --card: #1e293b; 
+    --text: #f8fafc; 
+    --border: #334155;
+    --primary-light: rgba(59, 130, 246, 0.1);
+}
+
+* { 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent; 
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    background: var(--bg); 
+    color: var(--text);
+    direction: rtl; 
+    margin: 0; 
+    padding: 0; 
+    transition: 0.3s; 
+    line-height: 1.6;
+}
+
+/* 1. الحاويات */
+.container { width: 100%; max-width: 550px; margin: 0 auto; padding: 15px; }
+.admin-container { max-width: 1000px !important; margin: 0 auto; padding: 20px; }
+
+/* 2. الهيدر والعناصر العلوية */
+.header { text-align: center; margin-bottom: 25px; padding-top: 10px; }
+.logo-text { font-size: 2.8rem; font-weight: 900; color: var(--primary); margin-bottom: 10px; text-shadow: 0 2px 10px rgba(59, 130, 246, 0.15); }
+
+/* حاوية الأزرار - متناسقة للموبايل واللاب */
+.nav-row { 
+    display: flex; 
+    justify-content: center; 
+    gap: 12px; 
+    flex-wrap: wrap; 
+    align-items: center; 
+}
+
+/* حاوية عنوان المحاضرة وزر المشاركة */
+.lecture-title-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    background: var(--bg);
+    padding: 15px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+}
+
+/* زرار المظهر الدائري ☀️ */
+.theme-toggle {
+    width: 45px; 
+    height: 45px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    cursor: pointer; 
+    border: 1px solid var(--border); 
+    background: var(--card);
+    font-size: 1.2rem; 
+    transition: 0.3s; 
+    box-shadow: var(--shadow);
+}
+.theme-toggle:hover { border-color: var(--primary); background: var(--primary-light); transform: rotate(15deg); }
+
+/* أزرار التنقل */
+.btn-nav { 
+    border: none; 
+    padding: 12px 20px; 
+    border-radius: 15px; 
+    color: white; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    font-size: 0.9rem; 
+    text-decoration: none; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px; 
+    white-space: nowrap; /* يمنع قص الكلام */
+}
+.btn-pink { background: linear-gradient(135deg, #ec4899, #d946ef); }
+.btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.btn-nav:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+
+/* زرار المشاركة الصغير بجوار العنوان */
+.btn-share-small {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    border-radius: 12px;
+}
+
+/* 3. الكروت */
+.quiz-card {
+    background: var(--card); border-radius: 30px; padding: 30px;
+    border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 25px;
+    animation: fadeIn 0.4s ease;
+}
+
+/* 4. نظام الخطوات (Wizard) */
+.setup-step { display: none; }
+.setup-step.active { display: block; animation: slideUp 0.4s ease; }
+.config-btn {
+    width: 100%; padding: 18px; background: var(--bg); border: 2px solid var(--border);
+    border-radius: 18px; margin-top: 12px; cursor: pointer; font-weight: 800;
+    text-align: right; color: var(--text); transition: 0.3s; font-size: 1rem;
+}
+.config-btn:hover { border-color: #cbd5e1; }
+.config-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); transform: scale(1.02); }
+
+/* 5. ساحة الاختبار (الأسئلة والإجابات) */
+.stack-card { 
+    margin-bottom: 40px; border-radius: 30px; padding: 35px 25px; 
+    background: var(--card); border: 1px solid var(--border); 
+    box-shadow: var(--shadow); animation: slideUp 0.5s ease;
+}
+.part-tag { color: var(--primary); padding: 6px 16px; border-radius: 50px; font-weight: 800; border: 2px dashed var(--primary); font-size: 0.8rem; background: var(--primary-light); }
+.question-text { font-size: 1.4rem; font-weight: 900; margin: 25px 0; color: var(--text); line-height: 1.6; }
+
+/* خيارات الإجابة الجذابة */
+.option {
+    background: var(--bg); border: 2px solid var(--border); border-radius: 18px;
+    padding: 16px; margin-bottom: 12px; cursor: pointer; display: flex; 
+    align-items: center; gap: 15px; font-weight: 700; transition: all 0.2s ease; font-size: 1.05rem;
+}
+.option:hover { border-color: var(--primary); background: var(--card); transform: translateX(-5px); }
+.option b { color: var(--primary); width: 25px; font-size: 1.1rem; background: var(--primary-light); padding: 5px; border-radius: 8px; text-align: center; }
+
+/* حالات الإجابة */
+.option.correct { background: var(--success) !important; color: white !important; border-color: var(--success) !important; transform: scale(1.02); }
+.option.correct b { background: rgba(255,255,255,0.2); color: white; }
+.option.wrong { background: var(--error) !important; color: white !important; border-color: var(--error) !important; }
+.option.wrong b { background: rgba(255,255,255,0.2); color: white; }
+.option.selected-temp { border-color: var(--primary); border-width: 2px; background: var(--primary-light); }
+
+/* صندوق الشرح التفصيلي */
+.explanation-box {
+    padding: 20px; background: var(--primary-light); border-radius: 18px; 
+    border-right: 6px solid var(--primary); font-size: 0.95rem; 
+    margin-top: 20px; font-weight: bold; line-height: 1.7; color: var(--text);
+    animation: fadeIn 0.4s ease;
+}
+
+/* 6. التايمر والمودالات */
+#global-timer {
+    position: sticky; top: 15px; z-index: 1000; background: var(--primary);
+    color: white; padding: 10px 30px; border-radius: 50px; font-weight: 900;
+    display: none; margin: 0 auto 15px; width: fit-content; box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4); font-size: 1.2rem;
+}
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(5px); }
+.modal-card { background: var(--card); width: 90%; max-width: 450px; border-radius: 30px; padding: 35px; position: relative; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+
+/* الأنميشن */
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
