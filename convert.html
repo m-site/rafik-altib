@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedQuiz - محول الروابط السريع</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #38bdf8;
+            --secondary: #8b5cf6;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --error: #ef4444;
+        }
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
+        }
+        h2 { margin: 0 0 10px; color: var(--primary); }
+        p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 15px; }
+        input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #334155;
+            background: #0b1120;
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            box-sizing: border-box;
+            transition: 0.3s;
+            direction: ltr; /* لضمان ظهور اللينك بشكل صحيح */
+        }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+        
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.4);
+        }
+        
+        .error-msg {
+            color: var(--error);
+            font-size: 0.85rem;
+            margin-top: 10px;
+            display: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="icon">🔗</div>
+        <h2>أداة تحديث المحاضرات</h2>
+        <p>قم بنسخ الرابط القديم من التليجرام والصقه هنا للوصول إلى المحاضرة على السيرفر الجديد فوراً.</p>
+        
+        <div class="input-group">
+            <input type="url" id="old-link" placeholder="https://...netlify.app/?id=...">
+            <button onclick="redirectStudent()">افتح المحاضرة الآن 🚀</button>
+            <div id="error-msg" class="error-msg">الرابط غير صحيح أو غير مكتمل!</div>
+        </div>
+    </div>
+
+    <script>
+        function redirectStudent() {
+            var inputElement = document.getElementById('old-link');
+            var errorMsg = document.getElementById('error-msg');
+            var urlText = inputElement.value.trim();
+            
+            errorMsg.style.display = 'none'; // إخفاء الخطأ في البداية
+
+            if(!urlText) {
+                errorMsg.innerText = 'يرجى إدخال الرابط أولاً!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                // استخراج المتغيرات من الرابط القديم
+                var urlObj = new URL(urlText);
+                var queryString = urlObj.search; // ده بيسحب الـ (?id=pastMCQs...)
+                
+                if(!queryString) {
+                    errorMsg.innerText = 'الرابط المنسوخ غير مكتمل (يفتقد الـ ID)!';
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+
+                // رابط السيرفر الجديد بتاعك
+                var newBaseUrl = "https://m-site.github.io/rafik-altib/";
+                
+                // التوجيه الفوري للسيرفر الجديد مع نفس الـ ID
+                window.location.href = newBaseUrl + queryString;
+                
+            } catch(e) {
+                // لو الطالب دخل كلام مش لينك أصلاً
+                errorMsg.innerText = 'برجاء التأكد من نسخ الرابط بشكل صحيح!';
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // عشان لو داس Enter من الكيبورد يشتغل علطول
+        document.getElementById('old-link').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                redirectStudent();
+            }
+        });
+    </script>
+
+</body>
+</html>
