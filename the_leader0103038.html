@@ -153,6 +153,14 @@
         // كلمة السر الخاصة بك
         const MASTER_SECURITY_KEY = "a3l@2q#p9@@w#39848jrno37o876#628ei#r9373@9#018bfg3hggfhuf95375#utys3#k2d3@j2f3h2g";
 
+        // Build student links from the current host. This keeps links working on
+        // GitHub Pages (including its repository subdirectory) and on any future host.
+        function getStudentUrl(id) {
+            const url = new URL('index.html', window.location.href);
+            url.searchParams.set('id', id);
+            return url.href;
+        }
+
         // توليد ID عشوائي
         function generateRandomID() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -179,8 +187,7 @@
                     uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
-                // اللينك الذكي (بيقرأ المسار الحالي لتجنب مشكلة الـ C:)
-                let finalUrl = window.location.protocol === "file:" ? window.location.href.replace("admin.html", "index.html") + "?id=" + id : "https://medquiz.netlify.app/?id=" + id;
+                const finalUrl = getStudentUrl(id);
                 
                 document.getElementById('final-encrypted-url').value = finalUrl;
                 document.getElementById('result-link-box').style.display = 'block';
@@ -203,8 +210,8 @@
         }
 
         // الفتح الذكي للموقع
-        function openSite() { 
-            window.open(window.location.protocol === "file:" ? 'index.html' : '/', '_blank'); 
+        function openSite() {
+            window.open(new URL('index.html', window.location.href).href, '_blank');
         }
 
         // جلب الإحصائيات والروابط
@@ -223,8 +230,7 @@
                 const d = doc.data();
                 const avg = d.subs > 0 ? Math.round(d.avg_score / d.subs) : 0;
                 
-                // الرابط الرسمي للمحاضرة لاستخدامه في جدول الإحصائيات
-                const link = "https://medquiz.netlify.app/?id=" + doc.id;
+                const link = getStudentUrl(doc.id);
                 
                 table.innerHTML += `
                     <tr>
@@ -342,3 +348,4 @@
     </script>
 </body>
 </html>
+
