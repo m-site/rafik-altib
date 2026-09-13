@@ -135,16 +135,34 @@
         }
 
         window.onload = async () => {
+            const homeView = document.getElementById('home-view');
+            const lectureView = document.getElementById('lecture-view');
             const id = new URLSearchParams(window.location.search).get('id');
-            db.collection('analytics').doc('global').set({ total_visits: firebase.firestore.FieldValue.increment(1) }, {merge: true});
-            if (id) {
+
+            // Always leave visitors with a usable screen, even if Firestore is blocked
+            // by a network error, an ad blocker, or an incorrect security rule.
+            homeView.style.display = 'block';
+            if (!id) return;
+
+            try {
+                db.collection('analytics').doc('global').set(
+                    { total_visits: firebase.firestore.FieldValue.increment(1) },
+                    { merge: true }
+                ).catch(error => console.warn('Analytics update failed:', error));
+
                 const doc = await db.collection('lectures').doc(id).get();
-                if (doc.exists) {
-                    document.getElementById('lecture-view').style.display = 'block';
-                    state.all = doc.data().questions; state.title = doc.data().title; state.id = id;
-                    document.getElementById('lec-title-display').innerText = state.title;
-                } else { document.getElementById('home-view').style.display = 'block'; }
-            } else { document.getElementById('home-view').style.display = 'block'; }
+                const lecture = doc.exists ? doc.data() : null;
+                if (!lecture || !Array.isArray(lecture.questions) || lecture.questions.length === 0) return;
+
+                state.all = lecture.questions;
+                state.title = lecture.title || 'محاضرة';
+                state.id = id;
+                document.getElementById('lec-title-display').innerText = state.title;
+                homeView.style.display = 'none';
+                lectureView.style.display = 'block';
+            } catch (error) {
+                console.error('Unable to load lecture:', error);
+            }
         };
 
         function nextS(c) { document.getElementById(`step-${c}`).classList.remove('active'); document.getElementById(`step-${c+1}`).classList.add('active'); }
@@ -290,3 +308,4 @@
     </script>
 </body>
 </html>
+
