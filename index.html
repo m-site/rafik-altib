@@ -3,309 +3,3055 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medcore 🩺</title>
+    <title>MEDCORE 🩺</title>
     <link rel="stylesheet" href="style.css">
+    <!-- مكتبات Firebase الرسمية الموحدة (v9.6.1-compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <!-- مكتبة الاحتفال وقواعد بيانات الأدوات والترجمة -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js" crossorigin="anonymous"></script>
+    <script src="medcore-tools.js"></script>
 </head>
-<body class="light-theme">
+<body>
 
-    <div id="global-timer">00:00</div>
-
-    <div class="container" id="main-app">
-        <header class="header">
-            <div class="logo-text">🩺 Medcore</div>
-            <div class="nav-row">
-                <button class="btn-nav btn-pink" onclick="openModal('comp')">📑 شكاوى واقتراحات</button>
-                <button class="theme-toggle" onclick="toggleTheme()" id="t-icon">☀️</button>
-                <button class="btn-nav btn-blue" onclick="openModal('score')">📊 سجل درجاتك</button>
+    <!-- 1. الشريط العلوي المدمج (القيم المعملية + الحاسبات + المختصرات + اللغة + المظهر + القائمة) -->
+    <nav class="top-navbar" id="main-navbar">
+        <div class="top-navbar-inner">
+            <div class="brand-group">
+                <a href="index.html" class="logo-text" title="MEDCORE">
+                    🩺 MEDCORE
+                </a>
+                <div class="status-pill hide-mobile" id="live-indicator" style="display:none;">
+                    <span class="radar-dot"></span>
+                    <span id="live-txt">متصل</span>
+                </div>
             </div>
-        </header>
 
-        <div id="home-view" class="quiz-card" style="text-align:center; display:none;">
-            <div class="ai-banner-box">
-        📢 دكتور، خلي بالك: المحتوى ده معمول  بمساعدة الذكاء الاصطناعي (AI)، فممكن تلاقي بعض الأخطاء العلمية البسيطة. لو واجهت أي مشكلة، يا ريت تبلغنا من قسم (شكاوى واقتراحات).
+            <div id="global-timer" role="timer" aria-live="polite">00:00</div>
+
+            <div class="navbar-actions">
+                <button type="button" class="icon-btn hide-mobile" onclick="openHubTool('labs')" id="nav-btn-labs">
+                    🧪 <span data-i18n="labsBtn">القيم المعملية</span>
+                </button>
+                <button type="button" class="icon-btn hide-mobile" onclick="openHubTool('calc')" id="nav-btn-calc">
+                    🧮 <span data-i18n="calcBtn">الحاسبات الطبية</span>
+                </button>
+                <button type="button" class="icon-btn hide-mobile" onclick="openHubTool('mnemonic')" id="nav-btn-mnem">
+                    🧠 <span data-i18n="mnemonicBtn">مختصرات الحفظ</span>
+                </button>
+                <button type="button" class="icon-btn" onclick="openNotifModal()" title="التحديثات والرسائل">
+                    🔔 <span class="notif-badge-dot" id="main-notif-badge"></span>
+                </button>
+                <button type="button" class="icon-btn" onclick="toggleAppLanguage()" id="lang-toggle-btn" title="تبديل اللغة / Switch Language">
+                    🌐 EN
+                </button>
+                <button type="button" class="icon-btn" onclick="toggleTheme()" id="theme-toggle-btn" title="تبديل المظهر">
+                    ☀️/🌙
+                </button>
+                <button type="button" class="icon-btn" onclick="toggleSidebar(true)" style="background:var(--maroon); color:#fff; border-color:var(--gold);">
+                    ☰ <span data-i18n="menuBtn">القائمة</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. القائمة الجانبية الشاملة (Sidebar Drawer) -->
+    <div class="modal-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+    <aside class="mq-sidebar-drawer" id="mq-sidebar" aria-label="قائمة خدمات الطالب">
+        <div style="padding:16px; background:var(--navy); border-bottom:2px solid var(--gold); display:flex; justify-content:space-between; align-items:center; color:#fff;">
+            <h3 style="margin:0; font-size:1.02rem;" data-i18n="sidebarTitle">🩺 قائمة خدمات MEDCORE</h3>
+            <button type="button" onclick="toggleSidebar(false)" style="background:none; border:none; color:var(--gold); font-size:1.3rem; cursor:pointer; font-weight:900;">✖</button>
+        </div>
+        <div style="padding:14px; display:flex; flex-direction:column; gap:8px; overflow-y:auto; flex:1;">
+            <button type="button" class="btn-nav btn-maroon" style="width:100%; border:2px solid var(--gold);" onclick="toggleSidebar(false); openModal('comp');">
+                📣 <span data-i18n="complaintsBtn">الشكاوى والاقتراحات</span>
+            </button>
+            <button type="button" class="btn-nav btn-blue" style="width:100%;" onclick="toggleSidebar(false); openNotifModal();">
+                🔔 <span data-i18n="notifsBtn">التحديثات والرسائل</span>
+                <span id="sb-notif-badge" style="background:var(--gold-bright); color:#000; padding:1px 7px; border-radius:999px; font-size:0.72rem; display:none;" data-i18n="newBadge">جديد</span>
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openHubTool('labs');">
+                🧪 <span data-i18n="labsBtn">القيم المعملية</span> (589)
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openHubTool('calc');">
+                🧮 <span data-i18n="calcBtn">الحاسبات الطبية</span> (37)
+            </button>
+            <button type="button" class="btn-nav btn-gold" style="width:100%;" onclick="toggleSidebar(false); openHubTool('mnemonic');">
+                🧠 <span data-i18n="mnemonicBtn">مختصرات الحفظ</span> (MedMnemonic AI)
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openHubTool('terms');">
+                📖 <span data-i18n="termsBtn">قاموس المصطلحات الطبية</span>
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openArenaForCurrentLecture();">
+                ⚔️ <span data-i18n="arenaBtn">ساحة التحدي (Medcore Arena)</span>
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="window.location.href='?modules=true'">
+                📚 <span data-i18n="modulesBtn">التجميعات والموديولات الشاملة</span>
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openModal('errors');">
+                ⚠️ <span data-i18n="errorBankBtn">بنك أخطائك</span> (<span id="sb-err-count">0</span>)
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openModal('score');">
+                📊 <span data-i18n="scoreHistoryBtn">سجل درجاتك</span>
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openModal('ai-models-info');">
+                🤖 <span data-i18n="aiModelsBtn">محركات MEDCORE AI</span>
+            </button>
+            <button type="button" class="btn-nav btn-outline" style="width:100%;" onclick="toggleSidebar(false); openModal('ai-promo');">
+                🎁 <span data-i18n="promoBtn">تفعيل كود باقة إضافية</span>
+            </button>
+            <button type="button" class="btn-nav btn-green" style="width:100%;" onclick="toggleSidebar(false); openContributionModal();">
+                📤 <span data-i18n="contributeBtn">ارفع أسئلة باسمك للدفعة</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- 3. بوابة الربط السلس مع ملف الأدوات والساحة (new.html Seamless Bridge) -->
+    <div id="hub-iframe-overlay" class="modal-overlay" style="padding:0; z-index:9950;">
+        <div style="width:100%; height:100%; max-width:1100px; max-height:94vh; margin:auto; background:var(--surface); border:2px solid var(--gold); border-radius:var(--radius-lg); overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow);">
+            <div style="padding:10px 16px; background:var(--navy); border-bottom:2px solid var(--gold); display:flex; justify-content:space-between; align-items:center; color:#fff;">
+                <b id="hub-iframe-title" style="color:var(--gold); font-size:0.95rem;">🩺 MEDCORE Hub</b>
+                <button type="button" onclick="closeHubTool()" style="background:var(--error-light); color:var(--error); border:1px solid var(--error); border-radius:8px; padding:4px 12px; font-weight:900; cursor:pointer;" data-i18n="close">✖ إغلاق</button>
+            </div>
+            <iframe id="hub-iframe-view" src="about:blank" style="width:100%; flex:1; border:none; background:var(--bg);"></iframe>
+        </div>
     </div>
-            <h2 style="font-weight:900; margin-top:20px;">أهلاً بك يا دكتور.. 👨‍⚕️</h2>
-           
-            <a href="https://t.me/MEDQUIZ2026" target="_blank" class="btn-nav btn-blue" style="text-decoration:none; display:block; margin:25px 0; padding:15px;">للمزيد من الاختبارات اضغط هنا 📢</a>
-            <button class="btn-nav btn-pink" style="width:auto; padding:12px 35px;" onclick="openModal('errors')">⚠️ بنك أخطائك السابقة</button>
+
+    <!-- 4. الحاوية الرئيسية للتطبيق -->
+    <main class="container" id="main-app">
+
+        <!-- لافتة التليجرام الديناميكية -->
+        <a href="https://t.me/MEDQUIZ2026" target="_blank" id="telegram-dynamic-banner" class="pg-wrap">
+            <div class="g-in">
+                <div class="pt-m" id="tg-banner-main-txt" data-i18n="tgBannerMain">📢 قناة MEDCORE الرسمية لتجميعات الأسئلة والامتحانات 🎯 اضغط هنا ✨</div>
+                <div class="pt-s" data-i18n="tgBannerSub">( <span class="hl-px">أسئلة امتحانات السنين السابقة</span> + أكثر من <span class="hl-15k">25,000</span> سؤال تفاعلي بالشرح الطبي ) 💪🏆</div>
+            </div>
+        </a>
+
+        <!-- زر الشكاوى والاقتراحات البارز في الصدارة -->
+        <button type="button" class="prominent-complaint-bar" onclick="openModal('comp')">
+            <span data-i18n="prominentCompText">📣 عندك شكوى، ملاحظة علمية، أو اقتراح لتطوير الموقع؟</span>
+            <span class="prominent-complaint-cta" data-i18n="prominentCompCta">تواصل معنا ✍️</span>
+        </button>
+
+        <!-- شبكة الأزرار السريعة (4 أزرار أساسية غير مكررة مع القيم المعملية أو المختصرات) -->
+        <div class="student-quick-grid" id="quick-dashboard">
+            <button type="button" class="dash-style-btn" onclick="window.location.href='?modules=true'">
+                📚 <span data-i18n="quickModules">الموديولات الشاملة</span>
+            </button>
+            <button type="button" class="dash-style-btn" onclick="openArenaForCurrentLecture()">
+                ⚔️ <span data-i18n="quickArena">ساحة التحدي</span>
+            </button>
+            <button type="button" class="dash-style-btn" onclick="openModal('errors')">
+                ⚠️ <span data-i18n="quickErrors">بنك أخطائك</span>
+            </button>
+            <button type="button" class="dash-style-btn" onclick="openModal('score')">
+                📊 <span data-i18n="quickScores">سجل درجاتك</span>
+            </button>
         </div>
 
-        <div id="lecture-view" style="display:none;">
-            
-            <div class="nav-row" style="margin-bottom: 25px;">
-                <button class="btn-nav btn-pink" style="padding:10px 20px;" onclick="openModal('errors')">⚠️ أخطائك</button>
-                <a href="https://t.me/MEDQUIZ2026" target="_blank" class="btn-nav btn-blue" style="padding:10px 20px;">📢 للمزيد من الاختبارات اضغط هنا</a>
+        <!-- شاشة التحميل -->
+        <div id="loading-view" class="quiz-card" style="display:none; text-align:center; padding:38px 18px;">
+            <div style="font-size:2.6rem; margin-bottom:10px;">⏳</div>
+            <h3 id="loading-title" style="margin:0; color:var(--gold);" data-i18n="loadingTitle">جاري تحضير المادة العلمية...</h3>
+            <p id="loading-sub" style="color:var(--text-muted); font-size:0.88rem; margin-top:6px;" data-i18n="loadingSub">يرجى الانتظار للحظات يا دكتور</p>
+        </div>
+
+        <!-- أ) الشاشة الرئيسية ومحرك البحث الصاروخي الذكي (Rocket Fuzzy + ID Decoder + AI Search) -->
+        <section id="home-view" class="quiz-card" style="display:none;">
+            <h2 style="font-weight:900; margin:0 0 8px 0; text-align:center; font-size:1.25rem;" data-i18n="welcomeTitle">أهلاً بك في MEDCORE يا دكتور 👨‍⚕️🩺</h2>
+            <p style="text-align:center; font-size:0.84rem; color:var(--text-muted); margin:0 0 14px 0;" data-i18n="welcomeSub">
+                💡 حدد أي مصطلح إنجليزي أثناء الحل لترجمته فوراً، واستخدم محرك MEDCORE AI لشرح ومناقشة أي سؤال طبياً.
+            </p>
+
+            <div class="static-section-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                    <label for="home-catalog-search" style="font-weight:800; font-size:0.9rem;" data-i18n="searchLabel">🔍 ابحث باسم المحاضرة، المادة، الموديول، أو الدفعة (حكومي/أهلية):</label>
+                    <span id="catalog-total-badge" class="status-pill" style="font-size:0.72rem;">⏳ جاري التحميل...</span>
+                </div>
+
+                <div style="display:flex; gap:6px;">
+                    <input type="search" id="home-catalog-search" placeholder="ابحث بعنوان المحاضرة أو المادة (مثال: فارما 2 أهلية، جيناتكس 3 حكومي، أناتومي، High yield)..." oninput="onRocketSearchInput()" onkeydown="if(event.key==='Enter') triggerAiSmartCatalogSearch()" style="flex:1; padding:11px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-weight:700;">
+                    <button type="button" class="btn-nav btn-gold" id="btn-ai-smart-search" onclick="triggerAiSmartCatalogSearch()" title="بحث ذكي بالمعنى عبر الذكاء الاصطناعي" style="padding:10px 14px; white-space:nowrap;">
+                        🤖 <span data-i18n="aiSearchBtn">بحث ذكي</span>
+                    </button>
+                </div>
+
+                <div id="ai-search-status" style="display:none; font-size:0.8rem; color:var(--gold); font-weight:800; margin-top:6px;"></div>
+                <div id="home-catalog-list" style="margin-top:10px; max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
             </div>
 
-            <div id="setup-wizard">
-                <div class="lecture-title-container">
-                    <h2 id="lec-title-display" style="color:var(--primary); font-weight:900; margin:0; text-align:center;"></h2>
-                    <button class="btn-nav btn-pink btn-share-small" onclick="copyCurrentLink()">🔗 مشاركة اللينك</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                <button type="button" class="btn-nav btn-maroon" style="flex:1; min-width:170px;" onclick="window.location.href='?modules=true'">
+                    📚 <span data-i18n="browseModulesBtn">تصفح الموديولات الشاملة</span>
+                </button>
+                <button type="button" class="btn-nav btn-green" style="flex:1; min-width:170px;" onclick="openContributionModal()">
+                    📤 <span data-i18n="contributeBtn">ارفع أسئلة باسمك للدفعة</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ب) شاشة المحاضرة ومعالج الإعداد (Setup Wizard) -->
+        <section id="lecture-view" style="display:none;">
+            <div id="module-comp-banner" style="display:none; margin-bottom:12px;"></div>
+
+            <div id="setup-wizard" class="super-wrapper">
+                <div class="lecture-main-banner">
+                    <div>
+                        <h2 id="lec-title-display" style="margin:0; font-size:1.15rem; font-weight:900;"></h2>
+                        <div id="lec-decoded-badges" style="display:flex; flex-wrap:wrap; gap:5px; margin-top:6px;"></div>
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button type="button" class="btn-chip" style="background:var(--maroon); color:#fff; border-color:var(--gold);" onclick="openArenaForCurrentLecture()">⚔️ <span data-i18n="challengeFriendsBtn">تحدي الأصدقاء في هذه المحاضرة</span></button>
+                        <button type="button" class="btn-chip" style="background:var(--gold); color:#0b1322; border:none;" onclick="copyCurrentLink()">🔗 <span data-i18n="copyLinkBtn">نسخ الرابط</span></button>
+                    </div>
                 </div>
-                
+
+                <!-- لافتة استكمال التقدم السابق -->
+                <div id="resume-banner-box" class="dynamic-section-box" style="display:none; text-align:center;">
+                    <h4 id="resume-banner-txt" style="margin:0 0 10px 0; color:var(--gold); font-size:0.92rem;"></h4>
+                    <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                        <button type="button" class="btn-nav btn-green" onclick="resumeSavedQuizNow()">▶️ <span data-i18n="resumeNowBtn">استكمال الاختبار فوراً</span></button>
+                        <button type="button" class="btn-nav btn-outline" onclick="clearSavedQuizProgress()">🗑️ <span data-i18n="startNewBtn">بدء اختبار جديد</span></button>
+                    </div>
+                </div>
+
+                <!-- الخطوة 1: النطاق -->
                 <div id="step-1" class="setup-step active">
-                    <h3>1️⃣ حابب تمتحن على إيه؟</h3>
-                    <button class="config-btn" onclick="setScope('all')">المحاضرة كاملة</button>
-                    <button class="config-btn" style="border-color:var(--error); color:var(--error);" onclick="setScope('errors')">أخطائك السابقة فقط ⚠️</button>
-                    <button class="config-btn" onclick="showPartsGrid()">أجزاء معينة</button>
-                    <div id="parts-selection-grid" style="display:none; margin-top:15px; grid-template-columns:1fr 1fr; gap:10px;"></div>
-                    <button id="p-next-wizard" class="btn-nav btn-blue" style="display:none; width:100%; margin-top:15px;" onclick="setScope('custom')">التالي ➡️</button>
+                    <h3 style="margin-top:0; font-size:1rem;" data-i18n="step1Title">1️⃣ اختر نطاق الاختبار:</h3>
+                    <button type="button" class="config-btn" onclick="setScope('all')">
+                        <span data-i18n="scopeAll">📚 المحاضرة كاملة</span>
+                        <small id="all-q-badge" style="color:var(--gold); font-weight:900;"></small>
+                    </button>
+                    <button type="button" class="config-btn" style="border-color:var(--error);" onclick="setScope('errors')">
+                        <span data-i18n="scopeErrors">⚠️ أخطاؤك السابقة في هذه المحاضرة</span>
+                        <small id="err-q-badge" style="color:var(--error); font-weight:900;"></small>
+                    </button>
+                    <button type="button" class="config-btn" onclick="showPartsGrid()">
+                        <span data-i18n="scopeParts">🧩 تحديد أجزاء (Parts) معينة</span>
+                        <span>▾</span>
+                    </button>
+                    <div id="parts-selection-grid" style="display:none; margin-top:10px; grid-template-columns:repeat(auto-fit, minmax(145px, 1fr)); gap:7px;"></div>
+                    <button type="button" id="p-next-wizard" class="btn-nav btn-gold" style="display:none; width:100%; margin-top:12px;" onclick="setScope('custom')"><span data-i18n="nextBtn">التالي ➡️</span></button>
                 </div>
 
+                <!-- الخطوة 2: العدد -->
                 <div id="step-2" class="setup-step">
-                    <h3>2️⃣ محتاج كام سؤال؟ <span style="font-size:0.9rem; color:var(--primary);">(المتاح: <span id="max-q-count">0</span>)</span></h3>
-                    <input type="number" id="q-limit-input" min="1" style="width:100%; padding:18px; border-radius:20px; border:2px solid var(--border); text-align:center; font-size:1.4rem; font-weight:900;">
-                    <button class="btn-nav btn-blue" style="margin-top:20px; width:100%; padding:16px;" onclick="applyLimit()">التالي ➡️</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h3 style="margin:0; font-size:1rem;"><span data-i18n="step2Title">2️⃣ عدد الأسئلة المطلوبة:</span> <small style="color:var(--gold);">(<span data-i18n="availableTxt">المتاح</span>: <span id="max-q-count">0</span>)</small></h3>
+                        <button type="button" class="btn-chip" onclick="prevS(2)">🔙 <span data-i18n="backBtn">رجوع</span></button>
+                    </div>
+                    <input type="number" id="q-limit-input" min="1" placeholder="اتركه فارغاً لاختيار كل الأسئلة">
+                    <button type="button" class="btn-nav btn-gold" style="margin-top:14px; width:100%; padding:12px;" onclick="applyLimit()"><span data-i18n="nextBtn">التالي ➡️</span></button>
                 </div>
 
+                <!-- الخطوة 3: نظام العرض -->
                 <div id="step-3" class="setup-step">
-                    <h3>3️⃣ طريقة عرض الإجابات؟</h3>
-                    <button class="config-btn" onclick="setMode('instant')">تصحيح فوري (مع شرح مفصل)</button>
-                    <button class="config-btn" onclick="setMode('exam')">نظام امتحان (النتيجة والمراجعة في النهاية)</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h3 style="margin:0; font-size:1rem;" data-i18n="step3Title">3️⃣ نظام عرض الإجابات:</h3>
+                        <button type="button" class="btn-chip" onclick="prevS(3)">🔙 <span data-i18n="backBtn">رجوع</span></button>
+                    </div>
+                    <button type="button" class="config-btn" onclick="setMode('instant')" data-i18n="modeInstant">⚡ تصحيح فوري (مع الشرح ومناقشة MEDCORE AI)</button>
+                    <button type="button" class="config-btn" onclick="setMode('exam')" data-i18n="modeExam">📝 نظام امتحان (التصحيح والمراجعة الكاملة في النهاية)</button>
                 </div>
 
+                <!-- الخطوة 4: التوقيت -->
                 <div id="step-4" class="setup-step">
-                    <h3>4️⃣ وقت الاختبار؟</h3>
-                    <button class="config-btn" onclick="startFinalQuiz(false)">بدون وقت (مفتوح)</button>
-                    <button class="config-btn" onclick="startFinalQuiz(true)">بوقت (٤٥ ثانية للسؤال) ⏱️</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h3 style="margin:0; font-size:1rem;" data-i18n="step4Title">4️⃣ وقت الاختبار:</h3>
+                        <button type="button" class="btn-chip" onclick="prevS(4)">🔙 <span data-i18n="backBtn">رجوع</span></button>
+                    </div>
+                    <button type="button" class="config-btn" onclick="startFinalQuiz(false)" data-i18n="timeOpen">🔓 بدون وقت (مفتوح للمذاكرة بتركيز)</button>
+                    <button type="button" class="config-btn" onclick="startFinalQuiz(true)" data-i18n="timeOfficial">⏱️ بوقت رسمي (45 ثانية لكل سؤال)</button>
                 </div>
             </div>
 
+            <!-- شريط أدوات الاختبار النشط (خالٍ من تكرار القيم المعملية أو المختصرات) -->
+            <div id="active-quiz-toolbar" style="display:none; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); padding:10px 12px; border-radius:var(--radius-md); border:1.5px solid var(--border);">
+                <div style="font-weight:800; font-size:0.86rem; color:var(--gold);" id="toolbar-lec-title"></div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button type="button" class="btn-chip" onclick="toggleLandmarkModal()">🔖 <span data-i18n="savedBtn">المحفوظات</span> (<span id="toolbar-lm-count">0</span>)</button>
+                    <button type="button" class="btn-chip" onclick="finalize()" style="border-color:var(--gold); color:var(--gold);">🏁 <span data-i18n="finishBtn">إنهاء</span></button>
+                </div>
+            </div>
+
+            <!-- منطقة عرض بطاقات الأسئلة -->
             <div id="quiz-feed-area"></div>
 
+            <!-- شاشة النتيجة النهائية والمراجعة -->
             <div id="result-view" class="quiz-card" style="display:none; text-align:center;">
-                <h2 style="font-weight:900; color:var(--text);">النتيجة النهائية 📊</h2>
-                <div id="final-pct-display" style="font-size:4.5rem; font-weight:900; color:var(--primary); margin:10px 0;">0%</div>
-                <div id="final-raw-score" style="font-weight:bold; color:#64748b; margin-bottom:15px; font-size:1.2rem;">0 / 0</div>
-                
-                <h3 id="final-phrase" style="margin-bottom:20px; line-height:1.5;"></h3>
-                
-                <div id="revision-alert" style="display:none; background:#fff1f2; padding:15px; border-radius:20px; text-align:right; margin-bottom:20px;">
-                    <h4 style="color:#991b1b; margin:0;">⚠️ أجزاء تحتاج مراجعة (أقل من 60%):</h4>
-                    <ul id="rev-parts-list" style="color:#b91c1c; font-weight:bold;"></ul>
-                </div>
-                
-                <button class="btn-nav btn-pink" style="width:100%; padding:16px; margin-bottom:12px; font-size:1rem;" onclick="shareScoreForCompetition()">🚀 مشاركة النتيجة للمنافسة</button>
-                <button class="btn-nav btn-blue" style="width:100%; padding:16px; margin-bottom:20px; font-size:1rem;" onclick="location.reload()">إعادة الاختبار 🔄</button>
+                <h2 style="font-weight:900; margin-top:0;" data-i18n="finalResultTitle">النتيجة النهائية 📊</h2>
+                <div id="final-pct-display" style="font-size:3.8rem; font-weight:900; color:var(--gold); margin:4px 0;">0%</div>
+                <div id="final-raw-score" style="font-weight:800; color:var(--text-muted); margin-bottom:12px;">0 / 0</div>
+                <h3 id="final-phrase" style="margin-bottom:14px; font-size:1rem;"></h3>
 
-                <div id="exam-review-list" style="text-align:right;"></div>
+                <div id="revision-alert" class="dynamic-section-box" style="display:none; text-align:start; margin-bottom:14px;">
+                    <h4 style="color:#fca5a5; margin:0 0 6px 0; font-size:0.9rem;" data-i18n="weakPartsTitle">⚠️ أجزاء تحتاج مراجعة (أقل من 60%):</h4>
+                    <ul id="rev-parts-list" style="margin:0; padding-inline-start:18px; font-weight:800; font-size:0.88rem;"></ul>
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+                    <button type="button" class="btn-nav btn-maroon" style="flex:1;" onclick="shareScoreForCompetition()">🚀 <span data-i18n="shareResultBtn">مشاركة النتيجة للمنافسة</span></button>
+                    <button type="button" class="btn-nav btn-blue" style="flex:1;" onclick="window.location.reload()">🔄 <span data-i18n="retryBtn">إعادة الاختبار</span></button>
+                </div>
+
+                <div id="exam-review-list" style="text-align:start;"></div>
+            </div>
+        </section>
+
+        <!-- ج) حاوية الأنظمة الفرعية (التجميعات / الشامل / OSPE) -->
+        <section id="sub-engine-view" style="display:none;"></section>
+
+    </main>
+
+    <!-- 5. القاموس الطبي العائم السفلي (Bottom Sheet) -->
+    <div id="mq-dict" class="mq-dict-sheet" role="region" aria-label="القاموس الطبي الفوري">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border); padding-bottom:6px; margin-bottom:6px;">
+            <span style="font-weight:900; color:var(--gold); font-size:0.86rem;" data-i18n="instantDictTitle">🩺 القاموس والمترجم الطبي الفوري</span>
+            <button type="button" onclick="closeDictSheet()" style="background:none; border:none; color:var(--error); font-size:1rem; font-weight:900; cursor:pointer;" data-i18n="close">✖ إغلاق</button>
+        </div>
+        <div id="mq-d-status" style="color:var(--gold-bright); font-size:0.86rem; font-weight:800; display:none;"></div>
+        <div id="mq-d-res" style="display:none;">
+            <div id="mq-d-g" style="background:var(--surface-elevated); border-right:4px solid var(--primary); padding:8px; border-radius:6px; font-size:0.88rem; margin-bottom:6px;"></div>
+            <div id="mq-d-med" style="background:var(--surface-elevated); border-right:4px solid var(--success); padding:8px; border-radius:6px; font-size:0.85rem; display:none;"></div>
+        </div>
+    </div>
+
+    <!-- 6. النوافذ المنبثقة الأساسية -->
+
+    <!-- أ) نافذة الشكاوى والاقتراحات -->
+    <div id="modal-comp" class="modal-overlay">
+        <div class="modal-card">
+            <button type="button" class="close-btn" onclick="closeModal('comp')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="compModalTitle">📣 صندوق الشكاوى والاقتراحات</h3>
+            <p style="font-size:0.84rem; color:var(--text-muted); margin-top:0;" data-i18n="compModalSub">رسالتك تصل مباشرة لإدارة MEDCORE، يمكنك كتابة أي اقتراح أو ملاحظة علمية:</p>
+            <textarea id="comp-msg-box" style="width:100%; height:115px; border-radius:var(--radius-sm); padding:10px; background:var(--surface-elevated); color:var(--text); border:1.5px solid var(--border);" placeholder="اكتب رسالتك أو اقتراحك هنا..."></textarea>
+            <button type="button" class="btn-nav btn-gold" style="width:100%; margin-top:10px;" onclick="sendComplaint()"><span data-i18n="sendBtn">إرسال الآن ✅</span></button>
+        </div>
+    </div>
+
+    <!-- ب) نافذة حالة محركات MEDCORE AI الأربعة -->
+    <div id="modal-ai-models-info" class="modal-overlay">
+        <div class="modal-card">
+            <button type="button" class="close-btn" onclick="closeModal('ai-models-info')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="aiSysTitle">🤖 محركات MEDCORE AI الذكية</h3>
+            <p style="font-size:0.82rem; color:var(--text-muted);" data-i18n="aiSysSub">يعمل النظام على اختيار المحرك الطبي الأنسب تلقائياً لكل سؤال حسب مستواه العلمي لضمان أعلى دقة وأسرع استجابة:</p>
+
+            <div class="static-section-box" style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b dir="ltr">⚡ Medcore Speed Lite 2.5</b>
+                    <span class="status-pill" data-i18n="activeAuto">متاح تلقائياً</span>
+                </div>
+                <small style="color:var(--text-muted);" data-i18n="liteDesc">محرك فائق السرعة للأسئلة المباشرة، والمختصرات الطبية، والمناقشات السريعة.</small>
+            </div>
+
+            <div class="static-section-box" style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b dir="ltr">🚀 Medcore Speed 3.5</b>
+                    <span class="status-pill" data-i18n="activeAuto">متاح تلقائياً</span>
+                </div>
+                <small style="color:var(--text-muted);" data-i18n="speedDesc">يجمع بين السرعة العالية والدقة الأكاديمية في تفكيك أسئلة الاختيار من متعدد واستبعاد البدائل.</small>
+            </div>
+
+            <div class="static-section-box" style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b dir="ltr">🧠 Medcore Brainstorming 2</b>
+                    <span class="status-pill" data-i18n="activeCases">نشط للحالات الإكلينيكية</span>
+                </div>
+                <small style="color:var(--text-muted);" data-i18n="brainDesc">مخصص لتحليل الحالات السريرية (Clinical Cases) وربط الأعراض بالتحاليل الطبية.</small>
+            </div>
+
+            <div class="dynamic-section-box" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b dir="ltr">👑 Medcore Ultra</b>
+                    <span id="ultra-status-pill" class="status-pill" style="background:var(--error-light); color:var(--error); border-color:var(--error);" data-i18n="ultraLocked">🔒 غير متاح حالياً للمستخدمين</span>
+                </div>
+                <small style="color:var(--text-muted);" data-i18n="ultraDesc">الإصدار الأعلى دقة بقدرات الاستنتاج الطبي المتقدم والتشخيص التفريقي الشامل.</small>
             </div>
         </div>
     </div>
 
-    <div id="modal-comp" class="modal-overlay"><div class="modal-card"><span class="close-btn" onclick="closeModal('comp')">✖️</span><h3>💡 شكوى أو اقتراح</h3><textarea id="comp-msg-box" style="width:100%; height:120px; border-radius:15px; padding:15px; margin-top:15px;" placeholder="اكتب شكوتك أو اقتراحك هنا يا دكتور..."></textarea><button class="btn-nav btn-blue" style="width:100%; margin-top:15px;" onclick="sendComplaint()">إرسال ✅</button></div></div>
-    <div id="modal-score" class="modal-overlay"><div class="modal-card"><span class="close-btn" onclick="closeModal('score')">✖️</span><h3>📊 سجل التقدم (أرشيفك)</h3><div id="history-content-list" style="margin-top:15px; max-height:350px; overflow-y:auto; text-align:right;"></div></div></div>
-    <div id="modal-errors" class="modal-overlay"><div class="modal-card"><span class="close-btn" onclick="closeModal('errors')">✖️</span><h3>⚠️ بنك الأخطاء</h3><div id="errors-content-list" style="margin-top:15px; text-align:right; max-height:400px; overflow-y:auto;"></div></div></div>
+    <!-- ج) نافذة تفعيل كود إضافي -->
+    <div id="modal-ai-promo" class="modal-overlay">
+        <div class="modal-card">
+            <button type="button" class="close-btn" onclick="closeModal('ai-promo')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="promoModalTitle">🎁 تفعيل كود باقة MEDCORE AI</h3>
+            <p style="font-size:0.84rem; color:var(--text-muted);" data-i18n="promoModalSub">أدخل كود التفعيل المخصص للدفعة:</p>
+            <input type="text" id="student-promo-input" placeholder="MED-XXXXXXXX" style="width:100%; padding:11px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); text-align:center; font-weight:900; direction:ltr; margin-bottom:10px;">
+            <button type="button" class="btn-nav btn-gold" style="width:100%;" onclick="activateStudentPromoCode()"><span data-i18n="activateBtn">تفعيل الكود الآن ✨</span></button>
+            <div id="promo-status-msg" style="margin-top:10px; font-weight:800; text-align:center; font-size:0.88rem;"></div>
+        </div>
+    </div>
+
+    <!-- د) نافذة سجل الدرجات -->
+    <div id="modal-score" class="modal-overlay">
+        <div class="modal-card">
+            <button type="button" class="close-btn" onclick="closeModal('score')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="scoreModalTitle">📊 سجل التقدم والدرجات</h3>
+            <div id="history-content-list" style="margin-top:10px; max-height:340px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <!-- هـ) نافذة بنك الأخطاء الذكي -->
+    <div id="modal-errors" class="modal-overlay">
+        <div class="modal-card">
+            <button type="button" class="close-btn" onclick="closeModal('errors')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="errorsModalTitle">⚠️ بنك الأخطاء الذكي</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 10px 0;" data-i18n="errorsModalSub">💡 السؤال الذي تجيبه بشكل صحيح مرتين متتاليتين أثناء مراجعة أخطائك يُزال تلقائياً بعد إتقانه.</p>
+            <div id="errors-content-list" style="max-height:360px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <!-- و) نافذة الأسئلة المحفوظة (Landmarks) -->
+    <div id="modal-landmarks" class="modal-overlay">
+        <div class="modal-card">
+            <button type="button" class="close-btn" onclick="closeModal('landmarks')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="landmarksModalTitle">🔖 الأسئلة المحفوظة للمراجعة</h3>
+            <div id="landmarks-content-list" style="margin-top:10px; max-height:360px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <!-- ز) نافذة الإشعارات والرسائل -->
+    <div id="modal-notifs" class="modal-overlay">
+        <div class="modal-card">
+            <button type="button" class="close-btn" onclick="closeModal('notifs')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="notifsModalTitle">🔔 آخر التحديثات والرسائل</h3>
+            <div id="mq-notif-list" style="margin-top:10px; max-height:58vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+    </div>
+
+    <!-- ح) نافذة مساهمة الطالب برفع أسئلة -->
+    <div id="modal-contribute" class="modal-overlay">
+        <div class="modal-card" style="max-width:600px;">
+            <button type="button" class="close-btn" onclick="closeModal('contribute')">✖</button>
+            <h3 style="margin-top:0; color:var(--gold);" data-i18n="contrModalTitle">📤 شارك أسئلتك مع الدفعة باسمك</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                <input type="text" id="uq-name" placeholder="اسمك (د. أحمد...)" style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border);">
+                <select id="uq-year" style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border);">
+                    <option value="الفرقة الأولى">الفرقة الأولى / Year 1</option>
+                    <option value="الفرقة الثانية">الفرقة الثانية / Year 2</option>
+                    <option value="الفرقة الثالثة">الفرقة الثالثة / Year 3</option>
+                    <option value="الفرقة الرابعة">الفرقة الرابعة / Year 4</option>
+                    <option value="الفرقة الخامسة">الفرقة الخامسة / Year 5</option>
+                </select>
+            </div>
+            <input type="text" id="uq-module" placeholder="الموديول أو الراوند (CNS, Cardio...)" style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:8px;">
+            <textarea id="uq-qs" rows="3" placeholder="الأسئلة والاختيارات..." style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:8px;"></textarea>
+            <textarea id="uq-ans" rows="2" placeholder="الإجابات الصحيحة والشرح..." style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:10px;"></textarea>
+
+            <div id="uq-result-area" class="dynamic-section-box" style="display:none; text-align:center;">
+                <h4 style="color:var(--success); margin:0 0 6px 0;">🎉 شكراً لمساهمتك يا دكتور!</h4>
+                <p style="font-size:0.82rem; margin:0 0 6px 0;">هذا رابط اختبارك، سيعمل تلقائياً فور مراجعة واعتماد الإدارة:</p>
+                <input type="text" id="uq-link-display" readonly style="width:100%; padding:8px; border-radius:6px; background:var(--surface); color:var(--gold); text-align:center; direction:ltr; border:1px solid var(--gold); margin-bottom:8px; font-weight:800;">
+                <button type="button" class="btn-nav btn-green" style="width:100%;" onclick="navigator.clipboard.writeText(document.getElementById('uq-link-display').value); showToast('تم نسخ الرابط بنجاح ✅');">📋 نسخ الرابط</button>
+            </div>
+
+            <button type="button" id="uq-submit-btn" class="btn-nav btn-gold" style="width:100%;" onclick="submitStudentContribution()">🚀 إرسال الأسئلة للاعتماد</button>
+        </div>
+    </div>
 
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyAElUTnaXitLw35Hb55kQWoe1AdbGO1t8A", authDomain: "medquiz2026.firebaseapp.com", projectId: "medquiz2026", storageBucket: "medquiz2026.firebasestorage.app", messagingSenderId: "840399052520", appId: "1:840399052520:web:1181e6fcd93696b679335d" };
-        firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
+    /* ==========================================================================
+       MEDCORE Unified Student Engine (v2026.7 — Smart ID Decoder + Rocket Search)
+       ========================================================================== */
+    const firebaseConfig = {
+        apiKey: "AIzaSyAElUTnaXitLw35Hb55kQWoe1AdbGO1t8A",
+        authDomain: "medquiz2026.firebaseapp.com",
+        databaseURL: "https://medquiz2026-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "medquiz2026",
+        storageBucket: "medquiz2026.firebasestorage.app",
+        messagingSenderId: "840399052520",
+        appId: "1:840399052520:web:1181e6fcd93696b679335d"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const rtdb = firebase.database();
 
-        // نظام استقبال التحديثات الحية
-        async function applyStudentLiveUpdates() {
+    // الرابط الرسمي لخادم Cloudflare Worker الخاص بك
+    const AI_WORKER_ENDPOINT = "https://medcore-ai-proxy.ma7moud01030382018.workers.dev/";
+
+    // قاموس الترجمة الشامل لواجهة الموقع (عربي / إنجليزي)
+    const UI_TRANSLATIONS = {
+        ar: {
+            labsBtn: "القيم المعملية",
+            calcBtn: "الحاسبات الطبية",
+            mnemonicBtn: "مختصرات الحفظ",
+            termsBtn: "قاموس المصطلحات الطبية",
+            menuBtn: "القائمة",
+            sidebarTitle: "🩺 قائمة خدمات MEDCORE",
+            complaintsBtn: "الشكاوى والاقتراحات",
+            notifsBtn: "التحديثات والرسائل",
+            newBadge: "جديد",
+            arenaBtn: "ساحة التحدي (Medcore Arena)",
+            modulesBtn: "التجميعات والموديولات الشاملة",
+            errorBankBtn: "بنك أخطائك",
+            scoreHistoryBtn: "سجل درجاتك",
+            aiModelsBtn: "محركات MEDCORE AI",
+            promoBtn: "تفعيل كود باقة إضافية",
+            contributeBtn: "ارفع أسئلة باسمك للدفعة",
+            close: "✖ إغلاق",
+            tgBannerMain: "📢 قناة MEDCORE الرسمية لتجميعات الأسئلة والامتحانات 🎯 اضغط هنا ✨",
+            prominentCompText: "📣 عندك شكوى، ملاحظة علمية، أو اقتراح لتطوير الموقع؟",
+            prominentCompCta: "تواصل معنا ✍️",
+            quickModules: "الموديولات الشاملة",
+            quickArena: "ساحة التحدي",
+            quickErrors: "بنك أخطائك",
+            quickScores: "سجل درجاتك",
+            loadingTitle: "جاري تحضير المادة العلمية...",
+            loadingSub: "يرجى الانتظار للحظات يا دكتور",
+            welcomeTitle: "أهلاً بك في MEDCORE يا دكتور 👨‍⚕️🩺",
+            welcomeSub: "💡 حدد أي مصطلح إنجليزي أثناء الحل لترجمته فوراً، واستخدم محرك MEDCORE AI لشرح ومناقشة أي سؤال طبياً.",
+            searchLabel: "🔍 ابحث باسم المحاضرة، المادة، الموديول، أو الدفعة (حكومي/أهلية):",
+            searchPlaceholder: "ابحث بعنوان المحاضرة أو المادة (مثال: فارما 2 أهلية، جيناتكس 3 حكومي، أناتومي، High yield)...",
+            aiSearchBtn: "بحث ذكي",
+            browseModulesBtn: "تصفح الموديولات الشاملة",
+            challengeFriendsBtn: "تحدي الأصدقاء في هذه المحاضرة",
+            copyLinkBtn: "نسخ الرابط",
+            resumeNowBtn: "استكمال الاختبار فوراً",
+            startNewBtn: "بدء اختبار جديد",
+            step1Title: "1️⃣ اختر نطاق الاختبار:",
+            scopeAll: "📚 المحاضرة كاملة",
+            scopeErrors: "⚠️ أخطاؤك السابقة في هذه المحاضرة",
+            scopeParts: "🧩 تحديد أجزاء (Parts) معينة",
+            nextBtn: "التالي ➡️",
+            backBtn: "رجوع",
+            step2Title: "2️⃣ عدد الأسئلة المطلوبة:",
+            availableTxt: "المتاح",
+            step3Title: "3️⃣ نظام عرض الإجابات:",
+            modeInstant: "⚡ تصحيح فوري (مع الشرح ومناقشة MEDCORE AI)",
+            modeExam: "📝 نظام امتحان (التصحيح والمراجعة الكاملة في النهاية)",
+            step4Title: "4️⃣ وقت الاختبار:",
+            timeOpen: "🔓 بدون وقت (مفتوح للمذاكرة بتركيز)",
+            timeOfficial: "⏱️ بوقت رسمي (45 ثانية لكل سؤال)",
+            savedBtn: "المحفوظات",
+            finishBtn: "إنهاء",
+            finalResultTitle: "النتيجة النهائية 📊",
+            weakPartsTitle: "⚠️ أجزاء تحتاج مراجعة (أقل من 60%):",
+            shareResultBtn: "مشاركة النتيجة للمنافسة",
+            retryBtn: "إعادة الاختبار",
+            instantDictTitle: "🩺 القاموس والمترجم الطبي الفوري",
+            compModalTitle: "📣 صندوق الشكاوى والاقتراحات",
+            compModalSub: "رسالتك تصل مباشرة لإدارة MEDCORE، يمكنك كتابة أي اقتراح أو ملاحظة علمية:",
+            sendBtn: "إرسال الآن ✅",
+            aiSysTitle: "🤖 محركات MEDCORE AI الذكية",
+            aiSysSub: "يعمل النظام على اختيار المحرك الطبي الأنسب تلقائياً لكل سؤال حسب مستواه العلمي لضمان أعلى دقة وأسرع استجابة:",
+            activeAuto: "متاح تلقائياً",
+            activeCases: "نشط للحالات الإكلينيكية",
+            liteDesc: "محرك فائق السرعة للأسئلة المباشرة، والمختصرات الطبية، والمناقشات السريعة.",
+            speedDesc: "يجمع بين السرعة العالية والدقة الأكاديمية في تفكيك أسئلة الاختيار من متعدد واستبعاد البدائل.",
+            brainDesc: "مخصص لتحليل الحالات السريرية (Clinical Cases) وربط الأعراض بالتحاليل الطبية.",
+            ultraLocked: "🔒 غير متاح حالياً للمستخدمين",
+            ultraUnlocked: "👑 مفعل حالياً",
+            ultraDesc: "الإصدار الأعلى دقة بقدرات الاستنتاج الطبي المتقدم والتشخيص التفريقي الشامل.",
+            promoModalTitle: "🎁 تفعيل كود باقة MEDCORE AI",
+            promoModalSub: "أدخل كود التفعيل المخصص للدفعة:",
+            activateBtn: "تفعيل الكود الآن ✨",
+            scoreModalTitle: "📊 سجل التقدم والدرجات",
+            errorsModalTitle: "⚠️ بنك الأخطاء الذكي",
+            errorsModalSub: "💡 السؤال الذي تجيبه بشكل صحيح مرتين متتاليتين أثناء مراجعة أخطائك يُزال تلقائياً بعد إتقانه.",
+            landmarksModalTitle: "🔖 الأسئلة المحفوظة للمراجعة",
+            notifsModalTitle: "🔔 آخر التحديثات والرسائل",
+            contrModalTitle: "📤 شارك أسئلتك مع الدفعة باسمك"
+        },
+        en: {
+            labsBtn: "Lab Values",
+            calcBtn: "Calculators",
+            mnemonicBtn: "Mnemonics",
+            termsBtn: "Medical Dictionary",
+            menuBtn: "Menu",
+            sidebarTitle: "🩺 MEDCORE Services",
+            complaintsBtn: "Complaints & Suggestions",
+            notifsBtn: "Updates & Messages",
+            newBadge: "New",
+            arenaBtn: "Medcore Arena (Live Challenge)",
+            modulesBtn: "Comprehensive Modules",
+            errorBankBtn: "Smart Error Bank",
+            scoreHistoryBtn: "Score History",
+            aiModelsBtn: "MEDCORE AI Engines",
+            promoBtn: "Activate Promo Code",
+            contributeBtn: "Share Questions with Batch",
+            close: "✖ Close",
+            tgBannerMain: "📢 Official MEDCORE Telegram Channel for Quizzes & Past Papers 🎯 Click Here ✨",
+            prominentCompText: "📣 Have a complaint, scientific note, or suggestion?",
+            prominentCompCta: "Contact Us ✍️",
+            quickModules: "Modules",
+            quickArena: "Live Arena",
+            quickErrors: "Error Bank",
+            quickScores: "My Scores",
+            loadingTitle: "Preparing Medical Content...",
+            loadingSub: "Please wait a moment, Doctor",
+            welcomeTitle: "Welcome to MEDCORE, Doctor 👨‍⚕️🩺",
+            welcomeSub: "💡 Select any English term during a quiz for instant translation, and use MEDCORE AI to discuss any question.",
+            searchLabel: "🔍 Search by Lecture Title, Subject, Module, or Batch (SCU/NINU):",
+            searchPlaceholder: "Search by lecture title, subject, or quiz type (e.g. Pharma 2 NINU, Genetics 3 SCU, High yield)...",
+            aiSearchBtn: "AI Search",
+            browseModulesBtn: "Browse Comprehensive Modules",
+            challengeFriendsBtn: "Challenge Friends in this Lecture",
+            copyLinkBtn: "Copy Link",
+            resumeNowBtn: "Resume Quiz Immediately",
+            startNewBtn: "Start New Quiz",
+            step1Title: "1️⃣ Select Quiz Scope:",
+            scopeAll: "📚 Full Lecture",
+            scopeErrors: "⚠️ Your Previous Errors in this Lecture",
+            scopeParts: "🧩 Select Specific Parts",
+            nextBtn: "Next ➡️",
+            backBtn: "Back",
+            step2Title: "2️⃣ Number of Questions:",
+            availableTxt: "Available",
+            step3Title: "3️⃣ Answer Display Mode:",
+            modeInstant: "⚡ Instant Feedback (with Explanation & MEDCORE AI Chat)",
+            modeExam: "📝 Exam Mode (Final Score & Full Review at the End)",
+            step4Title: "4️⃣ Quiz Timer:",
+            timeOpen: "🔓 Untimed (Open Study Mode)",
+            timeOfficial: "⏱️ Official Timer (45 seconds per question)",
+            savedBtn: "Bookmarks",
+            finishBtn: "Finish",
+            finalResultTitle: "Final Result 📊",
+            weakPartsTitle: "⚠️ Parts Needing Review (< 60%):",
+            shareResultBtn: "Share Score to Compete",
+            retryBtn: "Retry Quiz",
+            instantDictTitle: "🩺 Instant Medical Dictionary & Translator",
+            compModalTitle: "📣 Complaints & Suggestions",
+            compModalSub: "Your message goes directly to MEDCORE administration:",
+            sendBtn: "Send Now ✅",
+            aiSysTitle: "🤖 MEDCORE AI Smart Engines",
+            aiSysSub: "The platform automatically selects the optimal medical engine for each question based on clinical complexity:",
+            activeAuto: "Auto-Active",
+            activeCases: "Active for Clinical Cases",
+            liteDesc: "Ultra-fast engine for direct questions, medical mnemonics, and quick discussions.",
+            speedDesc: "Balances high speed with academic accuracy for MCQ analysis and option rule-out.",
+            brainDesc: "Dedicated to complex Clinical Cases and correlating symptoms with lab findings.",
+            ultraLocked: "🔒 Currently unavailable for users",
+            ultraUnlocked: "👑 Currently Active",
+            ultraDesc: "Highest accuracy tier with advanced clinical reasoning and differential diagnosis.",
+            promoModalTitle: "🎁 Activate MEDCORE AI Promo Code",
+            promoModalSub: "Enter your batch activation code:",
+            activateBtn: "Activate Code ✨",
+            scoreModalTitle: "📊 Progress & Score History",
+            errorsModalTitle: "⚠️ Smart Error Bank",
+            errorsModalSub: "💡 Questions answered correctly twice in a row during error review are automatically mastered and removed.",
+            landmarksModalTitle: "🔖 Bookmarked Questions",
+            notifsModalTitle: "🔔 Latest Updates & Messages",
+            contrModalTitle: "📤 Share Questions with Your Batch"
+        }
+    };
+
+    function cleanStrayTextNodes() {
+        Array.from(document.body.childNodes).forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE && (node.nodeValue.includes('i18n Direction') || node.nodeValue.includes('/* ==='))) {
+                node.remove();
+            }
+        });
+    }
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function stripHTML(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
+    // مفتاح الكاش = نص السؤال + الاختيارات (مرتبة أبجدياً) لمنع خلط شرح سؤالين لهما نفس النص
+    function qCacheKey(q) {
+        const opts = (q.options || []).map(o => stripHTML(String(o))).sort().join('|');
+        return hashQuestionKey(q.q + '||' + opts);
+    }
+
+    function hashQuestionKey(str) {
+        const clean = stripHTML(str).toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '');
+        let h = 2166136261;
+        for (let i = 0; i < clean.length; i++) {
+            h ^= clean.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return 'q_' + (h >>> 0).toString(36) + '_' + clean.length;
+    }
+
+    function safeSetLocalStorage(key, val) {
+        try {
+            localStorage.setItem(key, val);
+        } catch (e) {
+            const offlineKeys = Object.keys(localStorage).filter(k => k.startsWith('mq_offline_'));
+            if (offlineKeys.length > 0) {
+                localStorage.removeItem(offlineKeys[0]);
+                try { localStorage.setItem(key, val); } catch (_) {}
+            }
+        }
+    }
+
+    function getAppLang() {
+        return localStorage.getItem('mq_lang') || 'ar';
+    }
+
+    function uiTxt(key) {
+        const lang = getAppLang();
+        return (UI_TRANSLATIONS[lang] && UI_TRANSLATIONS[lang][key]) || UI_TRANSLATIONS.ar[key] || key;
+    }
+
+    function applyLanguageToDOM() {
+        const lang = getAppLang();
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.body.style.direction = lang === 'ar' ? 'rtl' : 'ltr';
+        document.body.style.textAlign = lang === 'ar' ? 'right' : 'left';
+
+        const langBtn = document.getElementById('lang-toggle-btn');
+        if (langBtn) langBtn.innerText = lang === 'ar' ? '🌐 EN' : '🌐 عربي';
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const k = el.getAttribute('data-i18n');
+            if (UI_TRANSLATIONS[lang] && UI_TRANSLATIONS[lang][k]) {
+                el.innerText = UI_TRANSLATIONS[lang][k];
+            }
+        });
+
+        const searchInp = document.getElementById('home-catalog-search');
+        if (searchInp) searchInp.placeholder = uiTxt('searchPlaceholder');
+
+        updateUltraBadgeText();
+    }
+
+    function toggleAppLanguage() {
+        const nextLang = getAppLang() === 'ar' ? 'en' : 'ar';
+        if (typeof window.mqSetLang === 'function') window.mqSetLang(nextLang);
+        else safeSetLocalStorage('mq_lang', nextLang);
+        applyLanguageToDOM();
+
+        const iframe = document.getElementById('hub-iframe-view');
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'MQ_SET_LANG', lang: nextLang }, '*');
+        }
+        onRocketSearchInput();
+    }
+
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'med-toast';
+        t.innerText = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2600);
+    }
+
+    function showMedAlert(msg, onConfirm) {
+        const old = document.getElementById('med-custom-alert-box');
+        if (old) old.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'med-custom-alert-box';
+        overlay.className = 'modal-overlay';
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+            <div class="modal-card" style="max-width:410px; text-align:center;">
+                <div style="font-size:2.5rem; margin-bottom:8px;">🩺</div>
+                <p style="font-size:1rem; font-weight:800; line-height:1.6; margin-bottom:18px;">${escapeHTML(msg)}</p>
+                <button type="button" id="confirm-med-alert" class="btn-nav btn-gold" style="width:100%;">${getAppLang() === 'en' ? 'OK, Doctor' : 'حسناً يا دكتور'}</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        document.getElementById('confirm-med-alert').onclick = () => {
+            overlay.remove();
+            if (onConfirm) onConfirm();
+        };
+    }
+
+    function initTheme() {
+        const saved = localStorage.getItem('mq-theme-v13') || localStorage.getItem('mq-theme-v5') || 'dark';
+        if (saved === 'light') document.body.classList.add('light-theme');
+        else document.body.classList.remove('light-theme');
+    }
+    initTheme();
+
+    function toggleTheme() {
+        const isLight = document.body.classList.toggle('light-theme');
+        const themeName = isLight ? 'light' : 'dark';
+        safeSetLocalStorage('mq-theme-v13', themeName);
+        const iframe = document.getElementById('hub-iframe-view');
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'MQ_SET_THEME', theme: themeName }, '*');
+        }
+    }
+
+    function toggleSidebar(open) {
+        const sb = document.getElementById('mq-sidebar');
+        const ov = document.getElementById('sidebar-overlay');
+        if (open) { sb.classList.add('open'); ov.style.display = 'flex'; }
+        else { sb.classList.remove('open'); ov.style.display = 'none'; }
+    }
+
+    // ==========================================================================
+    // محلل أكواد المحاضرات الذكي (MEDCORE Smart ID Decoder)
+    // يفكك أكواد مثل: genatics3scu.quiz3.f1 أو ph2ninu.quiz2.cns
+    // مع اعتماد ph = Pharmacology و phy = Physiology
+    // ==========================================================================
+    const MEDCORE_SUBJECT_PREFIXES = [
+        { prefix: 'community', en: 'Community',    ar: 'كوميونتي',     keywords: 'community medicine كوميونتي طب مجتمع' },
+        { prefix: 'genatics',  en: 'Genetics',     ar: 'جيناتكس',      keywords: 'genetics genatics جيناتكس وراثة وراثه' },
+        { prefix: 'genetics',  en: 'Genetics',     ar: 'جيناتكس',      keywords: 'genetics genatics جيناتكس وراثة وراثه' },
+        { prefix: 'pharma',    en: 'Pharmacology', ar: 'فارماكولوجي',   keywords: 'pharmacology pharma ph فارما فارماكولوجي أدوية ادويه' },
+        { prefix: 'physio',    en: 'Physiology',   ar: 'فسيولوجي',     keywords: 'physiology physio phy فسيولوجي وظائف أعضاء' },
+        { prefix: 'patho',     en: 'Pathology',    ar: 'باثولوجي',     keywords: 'pathology patho باثولوجي أمراض امراض' },
+        { prefix: 'micro',     en: 'Microbiology', ar: 'ميكروبيولوجي',  keywords: 'microbiology micro ميكرو ميكروبيولوجي بكتيريا مناعة' },
+        { prefix: 'histo',     en: 'Histology',    ar: 'هيستولوجي',    keywords: 'histology histo هيستو هيستولوجي أنسجة انسجه' },
+        { prefix: 'para',      en: 'Parasitology', ar: 'باراسيتولوجي',  keywords: 'parasitology para بارا باراسيتولوجي طفيليات' },
+        { prefix: 'phy',       en: 'Physiology',   ar: 'فسيولوجي',     keywords: 'physiology physio phy فسيولوجي وظائف أعضاء' },
+        { prefix: 'bio',       en: 'Biochemistry', ar: 'بايوكيمستري',   keywords: 'biochemistry bio بايو بايوكيمستري كيمياء حيوية' },
+        { prefix: 'ana',       en: 'Anatomy',      ar: 'أناتومي',      keywords: 'anatomy ana أناتومي اناتومي تشريح' },
+        { prefix: 'ph',        en: 'Pharmacology', ar: 'فارماكولوجي',   keywords: 'pharmacology pharma ph فارما فارماكولوجي أدوية ادويه' }
+    ];
+
+    function decodeMedcoreLectureId(rawId) {
+        const id = String(rawId || '').trim().toLowerCase();
+        if (!id) return null;
+
+        const segments = id.split('.');
+        const firstSeg = segments[0] || '';
+        const secondSeg = segments[1] || '';
+        const thirdSeg = segments[2] || '';
+
+        let subjectEn = '';
+        let subjectAr = '';
+        let subjectKw = '';
+        let remainder = firstSeg;
+
+        for (const s of MEDCORE_SUBJECT_PREFIXES) {
+            if (firstSeg.startsWith(s.prefix)) {
+                subjectEn = s.en;
+                subjectAr = s.ar;
+                subjectKw = s.keywords;
+                remainder = firstSeg.slice(s.prefix.length);
+                break;
+            }
+        }
+
+        const numMatch = remainder.match(/\d+/);
+        const lecNum = numMatch ? numMatch[0] : '';
+
+        let batchAr = '';
+        let batchEn = '';
+        let batchKw = '';
+        if (remainder.includes('scu') || id.includes('scu')) {
+            batchAr = 'حكومي SCU';
+            batchEn = 'SCU (Gov)';
+            batchKw = 'scu حكومي حكومى قناة السويس';
+        } else if (remainder.includes('ninu') || id.includes('ninu')) {
+            batchAr = 'أهلية NINU';
+            batchEn = 'NINU (Nat)';
+            batchKw = 'ninu أهلية اهليه إسماعيلية أهلية';
+        }
+
+        let quizLabelAr = '';
+        let quizLabelEn = '';
+        let quizKw = '';
+        const quizToken = secondSeg.startsWith('quiz') ? secondSeg : (id.match(/quiz[123]/)?.[0] || '');
+        if (quizToken === 'quiz1') {
+            quizLabelAr = '★ Quiz (1)';
+            quizLabelEn = '★ Quiz (1)';
+            quizKw = 'quiz 1 quiz1 كويز 1 كويز ١ أساسي';
+        } else if (quizToken === 'quiz2') {
+            quizLabelAr = '★ Quiz (2): Past exams & seminars';
+            quizLabelEn = '★ Quiz (2): Past exams & seminars';
+            quizKw = 'quiz 2 quiz2 كويز 2 كويز ٢ past exams seminars سنين سابقة امتحانات سابقة سيمنار';
+        } else if (quizToken === 'quiz3') {
+            quizLabelAr = '★ Quiz (3): High yield questions';
+            quizLabelEn = '★ Quiz (3): High yield questions';
+            quizKw = 'quiz 3 quiz3 كويز 3 كويز ٣ high yield هاي ييلد أسئلة الفهم العليا تريكات';
+        }
+
+        const moduleCode = thirdSeg ? thirdSeg.toUpperCase() : (secondSeg && !secondSeg.startsWith('quiz') ? secondSeg.toUpperCase() : '');
+        const moduleKw = moduleCode ? `${moduleCode} موديول ${moduleCode}` : '';
+
+        const badgesAr = [];
+        const badgesEn = [];
+        if (subjectAr) { badgesAr.push(`📘 ${subjectAr}`); badgesEn.push(`📘 ${subjectEn}`); }
+        if (lecNum) { badgesAr.push(`🔢 محاضرة ${lecNum}`); badgesEn.push(`🔢 Lec ${lecNum}`); }
+        if (batchAr) { badgesAr.push(`🏛️ ${batchAr}`); badgesEn.push(`🏛️ ${batchEn}`); }
+        if (quizLabelAr) { badgesAr.push(quizLabelAr); badgesEn.push(quizLabelEn); }
+        if (moduleCode) { badgesAr.push(`📦 ${moduleCode}`); badgesEn.push(`📦 ${moduleCode}`); }
+
+        const searchKeywords = [
+            subjectKw,
+            lecNum ? `محاضرة ${lecNum} محاضره ${lecNum} lec ${lecNum} lecture ${lecNum} ${subjectAr} ${lecNum} ${subjectEn} ${lecNum}` : '',
+            batchKw,
+            quizKw,
+            moduleKw
+        ].filter(Boolean).join(' ');
+
+        return {
+            subjectAr,
+            subjectEn,
+            lecNum,
+            batchAr,
+            batchEn,
+            quizLabelAr,
+            quizLabelEn,
+            moduleCode,
+            badgesAr,
+            badgesEn,
+            searchKeywords,
+            summary: badgesEn.join(' | ')
+        };
+    }
+
+    function renderDecodedBadgesHTML(decodedObj) {
+        if (!decodedObj) return '';
+        const list = getAppLang() === 'en' ? decodedObj.badgesEn : decodedObj.badgesAr;
+        if (!list || list.length === 0) return '';
+        return list.map(b => {
+            const isQuiz = b.includes('Quiz');
+            const bg = isQuiz ? 'rgba(197, 160, 89, 0.22)' : 'var(--surface-soft)';
+            const border = isQuiz ? 'var(--gold)' : 'var(--border)';
+            const color = isQuiz ? 'var(--gold-bright)' : 'var(--text-muted)';
+            return `<span style="background:${bg}; border:1px solid ${border}; color:${color}; padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:800; display:inline-block;" dir="auto">${escapeHTML(b)}</span>`;
+        }).join('');
+    }
+
+    // ==========================================================================
+    // بوابة فتح الأدوات وساحة التحدي عبر new.html (مقفولة على المحاضرة الحالية)
+    // ==========================================================================
+    function openHubTool(tabName, extraParams = {}) {
+        const overlay = document.getElementById('hub-iframe-overlay');
+        const iframe = document.getElementById('hub-iframe-view');
+        const titleEl = document.getElementById('hub-iframe-title');
+
+        const lang = getAppLang();
+        const theme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+
+        const titlesMap = {
+            labs: lang === 'en' ? '🧪 Clinical Lab Values Reference (589 Tests)' : '🧪 موسوعة القيم المعملية المرجعية (589 تحليلاً)',
+            calc: lang === 'en' ? '🧮 Clinical Medical Calculators (37 Tools)' : '🧮 الحاسبات الطبية السريرية (37 حاسبة)',
+            mnemonic: lang === 'en' ? '🧠 MedMnemonic AI Generator' : '🧠 صانع المختصرات الطبية (MedMnemonic AI)',
+            terms: lang === 'en' ? '📖 Medical Terminology Dictionary' : '📖 قاموس المصطلحات والاختصارات الطبية',
+            arena: lang === 'en' ? '⚔️ Medcore Live Arena' : '⚔️ ساحة التحدي المباشر (Medcore Arena)'
+        };
+        titleEl.innerText = titlesMap[tabName] || '🩺 MEDCORE Hub';
+
+        const urlParams = new URLSearchParams();
+        urlParams.set('tab', tabName);
+        urlParams.set('lang', lang);
+        urlParams.set('theme', theme);
+        if (state.id && state.id !== 'combo_test' && state.id !== 'error_bank') {
+            urlParams.set('lecId', state.id);
+            urlParams.set('lecTitle', state.title || state.id);
+        } else {
+            const pageParamId = (new URLSearchParams(window.location.search).get('id') || '').trim();
+            if (pageParamId) {
+                urlParams.set('lecId', pageParamId);
+                urlParams.set('lecTitle', state.title || pageParamId);
+            }
+        }
+        Object.keys(extraParams).forEach(k => {
+            if (extraParams[k]) urlParams.set(k, extraParams[k]);
+        });
+
+        iframe.src = `new.html?${urlParams.toString()}`;
+        overlay.style.display = 'flex';
+    }
+
+    function closeHubTool() {
+        const overlay = document.getElementById('hub-iframe-overlay');
+        const iframe = document.getElementById('hub-iframe-view');
+        overlay.style.display = 'none';
+        iframe.src = 'about:blank';
+    }
+
+    function openArenaForCurrentLecture(roomParam = null) {
+        const pageParams = new URLSearchParams(window.location.search);
+        const currentLecId = state.id || (pageParams.get('id') || '').trim();
+        const roomCode = roomParam || (pageParams.get('room') || '').trim();
+
+        if (!currentLecId && !roomCode) {
+            return showMedAlert(
+                getAppLang() === 'en'
+                    ? "⚠️ To create a challenge room, please open the lecture link first, then click on Live Arena."
+                    : "⚠️ لإنشاء غرفة تحدي، يرجى فتح رابط المحاضرة أولاً ثم الضغط على زر ساحة التحدي لتفتح على محاضرتك مباشرة."
+            );
+        }
+        openHubTool('arena', { room: roomCode, lecId: currentLecId, lecTitle: state.title || currentLecId });
+    }
+
+    // معرف الجهاز وحالة حظر الشات
+    let deviceId = localStorage.getItem('mq_device_id');
+    if (!deviceId) {
+        deviceId = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        safeSetLocalStorage('mq_device_id', deviceId);
+    }
+
+    function isAdminUltraUnlocked() {
+        return !!localStorage.getItem('mq_admin_ultra_pass');
+    }
+
+    function updateUltraBadgeText() {
+        const pill = document.getElementById('ultra-status-pill');
+        if (!pill) return;
+        if (isAdminUltraUnlocked()) {
+            pill.style.background = 'var(--success-light)';
+            pill.style.color = 'var(--success)';
+            pill.style.borderColor = 'var(--success)';
+            pill.innerText = uiTxt('ultraUnlocked');
+        } else {
+            pill.style.background = 'var(--error-light)';
+            pill.style.color = 'var(--error)';
+            pill.style.borderColor = 'var(--error)';
+            pill.innerText = uiTxt('ultraLocked');
+        }
+    }
+
+    let isAiChatBanned = localStorage.getItem('mq_ai_chat_banned') === 'true';
+
+    function syncAiBanStatusFromServer() {
+        rtdb.ref('ai_banned_users/' + deviceId).on('value', snap => {
+            if (snap.exists() && snap.val().banned === true) {
+                isAiChatBanned = true;
+                safeSetLocalStorage('mq_ai_chat_banned', 'true');
+            } else {
+                if (isAiChatBanned) {
+                    isAiChatBanned = false;
+                    localStorage.removeItem('mq_ai_chat_banned');
+                    localStorage.removeItem('mq_ai_strikes');
+                    localStorage.removeItem('mq_ai_offending_msgs');
+                }
+            }
+        });
+    }
+
+    let state = {
+        all: [],
+        active: [],
+        idx: 0,
+        score: 0,
+        cfg: { m: 'instant', t: false, l: 0 },
+        title: '',
+        id: '',
+        scope: 'all',
+        parts: {},
+        landmarks: [],
+        osce_images: [],
+        timer: null,
+        catalogCache: [],
+        chatMemory: {}
+    };
+
+    const COMP_MODULES_MAP = [
+        { key: 'GMSK', match: 'gmsk' },
+        { key: 'F3G', match: 'f3g' },
+        { key: 'CNS', match: 'cns' },
+        { key: 'MSK', match: 'msk' },
+        { key: 'RENAL', match: 'renal' },
+        { key: 'NEURO', match: 'neuro' },
+        { key: 'SURGERY', match: 'surgery' },
+        { key: 'TROPICAL', match: 'tropical' },
+        { key: 'RADIOLOGY', match: 'radiology' },
+        { key: 'CARDIO', match: 'cardio' },
+        { key: 'SS', match: 'ss' },
+        { key: 'F3', match: 'f3' }
+    ];
+
+    function setupDynamicTelegramBanner(currentId) {
+        const rules = [
+            { pattern: /cns/i, text: "على موديول الـ CNS", link: "https://t.me/MEDQUIZ2026/43" },
+            { pattern: /f3g/i, text: "على موديول F3G", link: "https://t.me/MEDQUIZ2026/46" },
+            { pattern: /f3/i, text: "على موديول F3", link: "https://t.me/MEDQUIZ2026/44" },
+            { pattern: /neuro/i, text: "على راوند الـ Neurology", link: "https://t.me/MEDQUIZ2026/40" },
+            { pattern: /surgery/i, text: "على راوند Surgery I", link: "https://t.me/MEDQUIZ2026/42" },
+            { pattern: /cardio/i, text: "على راوند الـ Cardio", link: "https://t.me/MEDQUIZ2026/45" },
+            { pattern: /radiology/i, text: "على راوند الـ Radiology", link: "https://t.me/MEDQUIZ2026/56" }
+        ];
+        const banner = document.getElementById('telegram-dynamic-banner');
+        const mainTxt = document.getElementById('tg-banner-main-txt');
+        const matched = rules.find(r => r.pattern.test(currentId || ''));
+        if (matched && banner && mainTxt && getAppLang() === 'ar') {
+            banner.href = matched.link;
+            mainTxt.innerHTML = `📢 للمزيد من الأسئلة والاختبارات ${matched.text} اضغط هنا ✨`;
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        cleanStrayTextNodes();
+        applyLanguageToDOM();
+        updateErrorBadgeCount();
+        syncAiBanStatusFromServer();
+        initRadarAndTracker();
+        initNotificationCenter();
+        initMedicalDictionary();
+        initKeyboardShortcuts();
+
+        const params = new URLSearchParams(window.location.search);
+        const rawId = (params.get('id') || '').trim();
+        const ospeId = (params.get('ospe') || '').trim();
+        const isArena = params.get('arena') === 'live';
+        const isModules = params.has('modules');
+        const isCombo = params.has('combo');
+
+        setupDynamicTelegramBanner(rawId || ospeId);
+
+        if (isArena) {
+            document.getElementById('home-view').style.display = 'block';
+            renderHomeCatalog();
+            openArenaForCurrentLecture(params.get('room'));
+            return;
+        }
+        if (ospeId) {
+            launchOspeLabEngine(ospeId);
+            return;
+        }
+        if (isModules) {
+            launchModulesBrowserEngine();
+            return;
+        }
+        if (isCombo) {
+            await launchComboQuizEngine(params.get('combo'), params.get('title') || 'اختبار شامل مدمج');
+            return;
+        }
+        if (rawId.toLowerCase().startsWith('userquestions')) {
+            const check = await fetchLectureWithOfflineFallback(rawId.toLowerCase()).catch(() => ({ exists: false }));
+            if (!check.exists) {
+                renderPendingContributionView();
+                return;
+            }
+        }
+
+        const directCompMod = COMP_MODULES_MAP.find(m => m.key === rawId.toUpperCase());
+        if (directCompMod) {
+            launchModuleComprehensiveEngine(directCompMod);
+            return;
+        }
+
+        if (rawId) {
+            await loadStandardLecture(rawId);
+        } else {
+            document.getElementById('home-view').style.display = 'block';
+            renderHomeCatalog();
+        }
+    });
+
+    // ==========================================================================
+    // 1. محرك البحث الصاروخي الذكي (Rocket Fuzzy + Smart ID Decoder + Gemma AI)
+    // ==========================================================================
+    function normalizeSearchString(str) {
+        return String(str || '')
+            .toLowerCase()
+            .replace(/[أإآ]/g, 'ا')
+            .replace(/ة/g, 'ه')
+            .replace(/ى/g, 'ي')
+            .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+            .replace(/[\u064B-\u065F]/g, '')
+            .replace(/[^a-z0-9\u0600-\u06FF\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function editDistance(a, b) {
+        if (Math.abs(a.length - b.length) > 3) return 99;
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j - 1];
+                else matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+            }
+        }
+        return matrix[b.length][a.length];
+    }
+
+    function computeLectureSearchScore(item, rawQuery) {
+        const qNorm = normalizeSearchString(rawQuery);
+        if (!qNorm) return 1;
+
+        if (!item._decoded) item._decoded = decodeMedcoreLectureId(item.id);
+        const decodedKw = normalizeSearchString(item._decoded?.searchKeywords || '');
+        const titleNorm = normalizeSearchString(item.title || '');
+        const partsNorm = normalizeSearchString(item.parts || '');
+        const idNorm = normalizeSearchString(item.id || '');
+        const fullTarget = `${titleNorm} ${decodedKw} ${partsNorm} ${idNorm}`;
+
+        // 1. تطابق كامل للعبارة في العنوان أو الـ ID أو التفكيك
+        if (titleNorm === qNorm || idNorm === qNorm) return 1200;
+        if (titleNorm.startsWith(qNorm)) return 950;
+        if (titleNorm.includes(qNorm)) return 800;
+        if (decodedKw.includes(qNorm)) return 750;
+        if (partsNorm.includes(qNorm)) return 600;
+        if (idNorm.includes(qNorm)) return 550;
+
+        // 2. البحث بالكلمات المتفرقة والتقريبية (Token & Fuzzy Matching)
+        const qTokens = qNorm.split(' ').filter(Boolean);
+        const targetWords = fullTarget.split(' ').filter(Boolean);
+        let totalScore = 0;
+        let matchedTokens = 0;
+
+        for (const qt of qTokens) {
+            let bestTokenScore = 0;
+            for (const tw of targetWords) {
+                if (tw === qt) {
+                    bestTokenScore = Math.max(bestTokenScore, 140);
+                } else if (tw.startsWith(qt) || (qt.length >= 3 && qt.startsWith(tw))) {
+                    bestTokenScore = Math.max(bestTokenScore, 100);
+                } else if (tw.includes(qt)) {
+                    bestTokenScore = Math.max(bestTokenScore, 75);
+                } else if (qt.length >= 4 && tw.length >= 4) {
+                    const dist = editDistance(qt, tw);
+                    if (dist === 1) bestTokenScore = Math.max(bestTokenScore, 70);
+                    else if (dist === 2 && qt.length >= 6) bestTokenScore = Math.max(bestTokenScore, 50);
+                }
+            }
+            if (bestTokenScore > 0) {
+                matchedTokens++;
+                totalScore += bestTokenScore;
+            }
+        }
+
+        if (matchedTokens === 0) return 0;
+        if (matchedTokens === qTokens.length) totalScore += 250;
+        return totalScore;
+    }
+
+    async function getLecturesCatalog(forceFullSync = false) {
+        if (state.catalogCache.length > 0 && !forceFullSync) return state.catalogCache;
+
+        const enrichCatalogArray = (arr) => arr.map(item => ({
+            ...item,
+            _decoded: decodeMedcoreLectureId(item.id)
+        }));
+
+        if (!forceFullSync) {
             try {
-                const snap = await db.collection('live_updates').where('target', '==', 'student').get();
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    if(d.type === 'js') { const script = document.createElement('script'); script.innerHTML = d.code; document.body.appendChild(script); }
-                    else if (d.type === 'css') { const style = document.createElement('style'); style.innerHTML = d.code; document.head.appendChild(style); }
-                    else if (d.type === 'html') { const div = document.createElement('div'); div.innerHTML = d.code; document.body.appendChild(div); }
+                const rtdbSnap = await rtdb.ref('lectures_search_index').once('value');
+                if (rtdbSnap.exists()) {
+                    const val = rtdbSnap.val();
+                    const list = Array.isArray(val) ? val : Object.values(val || {});
+                    if (list.length > 0) {
+                        state.catalogCache = enrichCatalogArray(list);
+                        updateCatalogCountBadge(state.catalogCache.length);
+                        return state.catalogCache;
+                    }
+                }
+            } catch (_) {}
+
+            try {
+                const catDoc = await db.collection('metadata').doc('catalog').get();
+                if (catDoc.exists && Array.isArray(catDoc.data().items) && catDoc.data().items.length > 0) {
+                    state.catalogCache = enrichCatalogArray(catDoc.data().items);
+                    updateCatalogCountBadge(state.catalogCache.length);
+                    rtdb.ref('lectures_search_index').set(catDoc.data().items).catch(() => {});
+                    return state.catalogCache;
+                }
+            } catch (_) {}
+        }
+
+        // سحب جميع المحاضرات من Firestore بالكامل بدون حد (No Limit)
+        const snap = await db.collection('lectures').get();
+        const items = [];
+        snap.forEach(d => {
+            const data = d.data();
+            const qs = Array.isArray(data.questions) ? data.questions : [];
+            if (qs.length > 0) {
+                const uniqueParts = Array.from(new Set(qs.map(q => q.p).filter(Boolean))).slice(0, 8).join(' | ');
+                const dec = decodeMedcoreLectureId(d.id);
+                items.push({
+                    id: d.id,
+                    title: data.title || d.id,
+                    parts: uniqueParts,
+                    module: data.module || dec?.moduleCode || '',
+                    decodedInfo: dec?.summary || '',
+                    qCount: qs.length
                 });
-            } catch(e) { console.error("OTA Error:", e); }
+            }
+        });
+
+        state.catalogCache = enrichCatalogArray(items);
+        updateCatalogCountBadge(state.catalogCache.length);
+
+        if (items.length > 0) {
+            rtdb.ref('lectures_search_index').set(items).catch(() => {});
+            db.collection('metadata').doc('catalog').set({
+                items,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(() => {});
         }
-        applyStudentLiveUpdates();
+        return state.catalogCache;
+    }
 
-        let state = { all: [], active: [], idx: 0, score: 0, cfg: {m:'', t:false, l:0}, title: '', id: '', parts: {}, timer: null };
-        
-        // دالة نسخ الرابط بجوار العنوان
-        function copyCurrentLink() { 
-            const el = document.createElement("input"); el.value = window.location.href; 
-            document.body.appendChild(el); el.select(); document.execCommand("copy"); document.body.removeChild(el); 
-            alert("✅ تم نسخ رابط المحاضرة بنجاح!"); 
+    function updateCatalogCountBadge(count) {
+        const badge = document.getElementById('catalog-total-badge');
+        if (badge) {
+            badge.innerText = getAppLang() === 'en' ? `${count} Lectures Ready` : `${count} محاضرة متاحة`;
+        }
+    }
+
+    async function renderHomeCatalog() {
+        const list = document.getElementById('home-catalog-list');
+        if (!list) return;
+        list.innerHTML = `<span style="color:var(--text-muted); font-size:0.84rem;">⏳ ${uiTxt('loadingTitle')}</span>`;
+        await getLecturesCatalog();
+        onRocketSearchInput();
+    }
+
+    function onRocketSearchInput() {
+        const list = document.getElementById('home-catalog-list');
+        const statusEl = document.getElementById('ai-search-status');
+        if (!list) return;
+        if (statusEl) statusEl.style.display = 'none';
+
+        const rawQ = (document.getElementById('home-catalog-search')?.value || '').trim();
+        let scored = [];
+
+        if (!rawQ) {
+            scored = state.catalogCache.slice(0, 45).map(item => ({ item, score: 1 }));
+        } else {
+            state.catalogCache.forEach(item => {
+                const sc = computeLectureSearchScore(item, rawQ);
+                if (sc > 0) scored.push({ item, score: sc });
+            });
+            scored.sort((a, b) => b.score - a.score);
+            scored = scored.slice(0, 40);
         }
 
-        // دالة مشاركة النتيجة
-        function shareScoreForCompetition() {
-            const pct = Math.round((state.score / state.cfg.l) * 100);
-            const txt = `أنهيت اختبار "${state.title}" بنسبة ${pct}% 🎯\nعلى موقع MedQuiz 🩺\nهل يمكنك تحطيم رقمي؟\n${window.location.href}`;
-            if (navigator.share) { navigator.share({ title: 'تحدي MedQuiz', text: txt }); } else { prompt("انسخ هذه الرسالة وشاركها مع زملائك:", txt); }
+        renderCatalogItemsList(scored.map(s => s.item), rawQ);
+    }
+
+    function renderCatalogItemsList(itemsArray, rawQuery = '') {
+        const list = document.getElementById('home-catalog-list');
+        if (!list) return;
+
+        if (itemsArray.length === 0) {
+            list.innerHTML = `
+                <div style="text-align:center; padding:16px; color:var(--text-muted); font-size:0.86rem;">
+                    <div>${getAppLang() === 'en' ? 'No direct match found.' : 'لم يتم العثور على تطابق حرفي مباشر.'}</div>
+                    ${rawQuery ? `<button type="button" class="btn-nav btn-gold" style="margin-top:8px;" onclick="triggerAiSmartCatalogSearch()">🤖 ${getAppLang() === 'en' ? 'Find Closest Lectures with AI' : 'ابحث بالمعنى العلمي عبر الذكاء الاصطناعي'}</button>` : ''}
+                </div>
+            `;
+            return;
         }
 
-        window.onload = async () => {
-            const homeView = document.getElementById('home-view');
-            const lectureView = document.getElementById('lecture-view');
-            const id = new URLSearchParams(window.location.search).get('id');
+        const qLabel = getAppLang() === 'en' ? 'Qs' : 'سؤال';
+        list.innerHTML = itemsArray.map(item => {
+            if (!item._decoded) item._decoded = decodeMedcoreLectureId(item.id);
+            const badgesHTML = renderDecodedBadgesHTML(item._decoded);
+            return `
+                <a href="?id=${encodeURIComponent(item.id)}" class="config-btn" style="text-decoration:none; margin-top:0; padding:11px 14px; align-items:flex-start;">
+                    <div style="display:flex; flex-direction:column; gap:5px; text-align:start; flex:1;">
+                        <span style="font-weight:900; color:var(--text); font-size:0.96rem;">🩺 ${escapeHTML(item.title)}</span>
+                        ${badgesHTML ? `<div style="display:flex; flex-wrap:wrap; gap:5px;">${badgesHTML}</div>` : ''}
+                        ${item.parts ? `<small style="color:var(--text-muted); font-size:0.74rem;">🧩 ${escapeHTML(item.parts)}</small>` : ''}
+                    </div>
+                    <span class="status-pill" style="align-self:center;">${Number(item.qCount) || 0} ${qLabel} ➡️</span>
+                </a>
+            `;
+        }).join('');
+    }
 
-            // Always leave visitors with a usable screen, even if Firestore is blocked
-            // by a network error, an ad blocker, or an incorrect security rule.
-            homeView.style.display = 'block';
-            if (!id) return;
+    async function triggerAiSmartCatalogSearch() {
+        const rawQ = (document.getElementById('home-catalog-search')?.value || '').trim();
+        if (!rawQ) return;
+
+        const statusEl = document.getElementById('ai-search-status');
+        const btn = document.getElementById('btn-ai-smart-search');
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.innerText = getAppLang() === 'en' ? '🤖 AI is ranking the closest lectures to your search...' : '🤖 جاري ترتيب أقرب المحاضرات علمياً لبحثك...';
+        }
+        if (btn) btn.disabled = true;
+
+        try {
+            const catalog = await getLecturesCatalog();
+            const compactList = catalog.map((c, idx) => {
+                const dec = c._decoded || decodeMedcoreLectureId(c.id);
+                return `${idx}:${c.id} | ${c.title} | ${dec?.summary || ''}`;
+            }).join('\n');
+
+            const res = await fetch(AI_WORKER_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    task: 'smart_search',
+                    query: rawQ,
+                    catalogText: compactList
+                })
+            });
+            const data = await res.json();
+            if (data.success && Array.isArray(data.matchedIndices) && data.matchedIndices.length > 0) {
+                const ranked = data.matchedIndices.map(i => catalog[i]).filter(Boolean);
+                if (ranked.length > 0) {
+                    renderCatalogItemsList(ranked, rawQ);
+                    if (statusEl) statusEl.innerText = getAppLang() === 'en' ? '✨ Ranked by MEDCORE AI Semantic Search:' : '✨ تم ترتيب أقرب المحاضرات لبحثك بواسطة الذكاء الاصطناعي:';
+                    return;
+                }
+            }
+            onRocketSearchInput();
+        } catch (_) {
+            onRocketSearchInput();
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    // ==========================================================================
+    // 2. منظومة MEDCORE AI الذكية (التوجيه التلقائي + الكاش السحابي + الشات + الحظر)
+    // ==========================================================================
+    const OBVIOUS_NON_MEDICAL_REGEX = /(الأهلي|الزمالك|برشلونة|ريال مدريد|مباراة|كورة|انتخابات|سياسة|طبخ|طريقة عمل|نكتة|قولي نكته|كود برمجة|بايثون|جافاسكريبت)/i;
+
+    async function requestAiExplanation(idx, btn, quickAction = null) {
+        const q = state.active[idx];
+        const panel = document.getElementById(`ai-panel-${idx}`);
+        const expContent = document.getElementById(`ai-exp-content-${idx}`);
+        const badgeEl = document.getElementById(`ai-model-badge-${idx}`);
+        const chatWrap = document.getElementById(`ai-chat-wrap-${idx}`);
+
+        panel.style.display = 'block';
+        const lang = getAppLang();
+        // v2 key prefix لضمان توليد الشرح بالبرومبت الجديد المركز الخالي من الترجمة الحرفية
+        const qHash = 'v3_' + qCacheKey(q) + (quickAction ? `_${quickAction}` : '_main') + `_${lang}`;
+
+        if (!isAdminUltraUnlocked()) {
+            try {
+                const cacheSnap = await rtdb.ref('ai_explanations_cache/' + qHash).once('value');
+                if (cacheSnap.exists() && cacheSnap.val().text) {
+                    const cached = cacheSnap.val();
+                    badgeEl.innerText = cached.model || 'Medcore Speed 3.5 🚀';
+                    expContent.innerHTML = escapeHTML(cached.text);
+                    if (chatWrap) renderAiChatSection(idx);
+                    return;
+                }
+            } catch (_) {}
+        }
+
+        if (btn) btn.disabled = true;
+        expContent.innerHTML = lang === 'en'
+            ? `⏳ Analyzing question via MEDCORE AI...`
+            : `⏳ جاري التحليل الطبي عبر محرك MEDCORE AI...`;
+
+        try {
+            const res = await fetch(AI_WORKER_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    task: quickAction ? 'quick_action' : 'explain',
+                    quickAction,
+                    lang,
+                    question: stripHTML(q.q),
+                    options: q.options || [],
+                    correctAnswer: q.a,
+                    adminUltraToken: localStorage.getItem('mq_admin_ultra_pass') || ''
+                })
+            });
+            const data = await res.json();
+            const replyText = data.explanation || data.reply || data.result || data.text || '';
+            if (data.success && replyText) {
+                const chosenModel = data.medcoreModel || 'Medcore Speed 3.5 🚀';
+                badgeEl.innerText = chosenModel;
+                expContent.innerHTML = escapeHTML(replyText);
+
+                rtdb.ref('ai_explanations_cache/' + qHash).set({
+                    text: replyText,
+                    model: chosenModel,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).catch(() => {});
+
+                const todayStr = new Date().toISOString().split('T')[0];
+                rtdb.ref('global_stats/' + todayStr + '/total_questions').set(firebase.database.ServerValue.increment(1)).catch(() => {});
+
+                if (chatWrap) renderAiChatSection(idx);
+            } else {
+                expContent.innerHTML = `<span style="color:var(--error);">❌ ${escapeHTML(data.error || 'تعذر توليد الشرح حالياً')}</span>`;
+            }
+        } catch (err) {
+            expContent.innerHTML = `<span style="color:var(--error);">❌ ${lang === 'en' ? 'Connection error with MEDCORE AI.' : 'تعذر الاتصال بمحرك MEDCORE AI.'}</span>`;
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    function renderAiChatSection(idx) {
+        const chatWrap = document.getElementById(`ai-chat-wrap-${idx}`);
+        if (!chatWrap) return;
+        const lang = getAppLang();
+
+        if (isAiChatBanned && !isAdminUltraUnlocked()) {
+            chatWrap.innerHTML = `
+                <div class="dynamic-section-box" style="margin:10px 0 0 0; text-align:center; font-size:0.84rem;">
+                    🔒 <b>${lang === 'en' ? 'Interactive chat has been disabled for your account due to repeated non-medical queries.' : 'تم إيقاف ميزة المحادثة التفاعلية لحسابك بسبب الأسئلة خارج النطاق الطبي.'}</b><br>
+                    <small style="color:var(--text-muted);">${lang === 'en' ? 'Device ID:' : 'كود الجهاز للمراجعة:'} <b>${escapeHTML(deviceId)}</b></small>
+                </div>
+            `;
+            return;
+        }
+
+        if (chatWrap.dataset.rendered === 'true') return;
+        chatWrap.dataset.rendered = 'true';
+
+        chatWrap.innerHTML = `
+            <div style="border-top:1px dashed var(--border); margin-top:12px; padding-top:10px;">
+                <div style="font-size:0.8rem; font-weight:800; color:var(--gold); margin-bottom:6px;">
+                    💬 ${lang === 'en' ? 'Ask MEDCORE AI for more clinical details on this question:' : 'اسأل محرك MEDCORE AI عن أي تفصيلة طبية إضافية في هذا السؤال:'}
+                </div>
+                <div class="ai-quick-prompts-row">
+                    <button type="button" class="btn-chip" onclick="requestAiExplanation(${idx}, this, 'ruleout')">❓ ${lang === 'en' ? 'Why are other options wrong?' : 'ليه باقي الاختيارات غلط؟'}</button>
+                    <button type="button" class="btn-chip" onclick="requestAiExplanation(${idx}, this, 'clues')">🩺 ${lang === 'en' ? 'Key Clues' : 'أهم الكلمات المفتاحية (Clues)'}</button>
+                    <button type="button" class="btn-chip" onclick="requestQuestionMnemonic(${idx}, this)">🧠 ${lang === 'en' ? 'Create Mnemonic' : 'اعمل لي Mnemonic للسؤال'}</button>
+                </div>
+                <div class="ai-chat-history" id="ai-chat-hist-${idx}"></div>
+                <div class="ai-chat-input-row">
+                    <input type="text" id="ai-chat-inp-${idx}" placeholder="${lang === 'en' ? 'Ask a medical question about this case...' : 'اسأل عن أي تفصيلة طبية أو توضيح في هذا السؤال...'}" onkeydown="if(event.key==='Enter') sendAiFollowUpChat(${idx})" style="flex:1; padding:9px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.88rem;">
+                    <button type="button" id="ai-chat-btn-${idx}" class="btn-nav btn-gold" style="padding:8px 14px;" onclick="sendAiFollowUpChat(${idx})">${lang === 'en' ? 'Send ⬆️' : 'إرسال ⬆️'}</button>
+                </div>
+            </div>
+        `;
+    }
+
+    async function requestQuestionMnemonic(idx, btn) {
+        const q = state.active[idx];
+        const qHash = 'v3_' + qCacheKey(q) + '_mnemonic';
+        const histEl = document.getElementById(`ai-chat-hist-${idx}`);
+
+        try {
+            const cacheSnap = await rtdb.ref('ai_explanations_cache/' + qHash).once('value');
+            if (cacheSnap.exists() && cacheSnap.val().text) {
+                appendChatBubble(histEl, "🧠 Mnemonic", cacheSnap.val().text);
+                return;
+            }
+        } catch (_) {}
+
+        btn.disabled = true;
+        try {
+            const res = await fetch(AI_WORKER_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    task: 'mnemonic',
+                    items: `${stripHTML(q.q)} | Correct Answer: ${q.a}`
+                })
+            });
+            const data = await res.json();
+            const replyText = data.mnemonic || data.explanation || data.reply || '';
+            if (data.success && replyText) {
+                appendChatBubble(histEl, "🧠 Mnemonic", replyText);
+                rtdb.ref('ai_explanations_cache/' + qHash).set({
+                    text: replyText,
+                    model: data.medcoreModel || 'Medcore Speed Lite 2.5 ⚡'
+                }).catch(() => {});
+            }
+        } catch (_) {}
+        finally { btn.disabled = false; }
+    }
+
+    function appendChatBubble(histEl, userTxt, botTxt, isWarning = false) {
+        if (!histEl) return;
+        const uDiv = document.createElement('div');
+        uDiv.className = 'ai-chat-msg-user';
+        uDiv.innerText = userTxt;
+
+        const bDiv = document.createElement('div');
+        bDiv.className = 'ai-chat-msg-bot';
+        if (isWarning) bDiv.style.borderColor = 'var(--error)';
+        bDiv.innerText = botTxt;
+
+        histEl.appendChild(uDiv);
+        histEl.appendChild(bDiv);
+        histEl.scrollTop = histEl.scrollHeight;
+    }
+
+    async function sendAiFollowUpChat(idx) {
+        if (isAiChatBanned && !isAdminUltraUnlocked()) {
+            renderAiChatSection(idx);
+            return;
+        }
+
+        const inp = document.getElementById(`ai-chat-inp-${idx}`);
+        const btn = document.getElementById(`ai-chat-btn-${idx}`);
+        const histEl = document.getElementById(`ai-chat-hist-${idx}`);
+        const msg = (inp?.value || '').trim();
+        if (!msg) return;
+
+        inp.value = '';
+
+        if (OBVIOUS_NON_MEDICAL_REGEX.test(msg)) {
+            handleOffTopicStrike(idx, msg, histEl);
+            return;
+        }
+
+        btn.disabled = true;
+        const q = state.active[idx];
+        if (!state.chatMemory[idx]) state.chatMemory[idx] = [];
+
+        try {
+            const res = await fetch(AI_WORKER_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    task: 'chat',
+                    lang: getAppLang(),
+                    question: stripHTML(q.q),
+                    correctAnswer: q.a,
+                    userMessage: msg,
+                    history: state.chatMemory[idx].slice(-2),
+                    adminUltraToken: localStorage.getItem('mq_admin_ultra_pass') || ''
+                })
+            });
+            const data = await res.json();
+            const replyText = data.reply || data.explanation || data.text || '';
+
+            if (data.offTopic && !isAdminUltraUnlocked()) {
+                handleOffTopicStrike(idx, msg, histEl);
+            } else if (data.success && replyText) {
+                state.chatMemory[idx].push({ u: msg, a: replyText });
+                appendChatBubble(histEl, msg, replyText);
+            } else {
+                appendChatBubble(histEl, msg, data.error || "تعذر الرد حالياً.");
+            }
+        } catch (e) {
+            appendChatBubble(histEl, msg, "تعذر الاتصال بمحرك MEDCORE AI.");
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function handleOffTopicStrike(idx, offendingMsg, histEl) {
+        let strikes = parseInt(localStorage.getItem('mq_ai_strikes') || '0', 10) + 1;
+        safeSetLocalStorage('mq_ai_strikes', String(strikes));
+
+        let offMsgs = JSON.parse(localStorage.getItem('mq_ai_offending_msgs') || '[]');
+        offMsgs.push(offendingMsg);
+        safeSetLocalStorage('mq_ai_offending_msgs', JSON.stringify(offMsgs));
+
+        if (strikes >= 2) {
+            isAiChatBanned = true;
+            safeSetLocalStorage('mq_ai_chat_banned', 'true');
+            rtdb.ref('ai_banned_users/' + deviceId).set({
+                deviceId,
+                banned: true,
+                strikes,
+                offendingMessages: offMsgs,
+                lectureId: state.id || 'general',
+                bannedAt: firebase.database.ServerValue.TIMESTAMP
+            }).catch(() => {});
+
+            renderAiChatSection(idx);
+            showMedAlert("🔒 تم إغلاق ميزة المحادثة التفاعلية لحسابك بسبب تكرار الأسئلة خارج النطاق الطبي للمرة الثانية. سيظل الشرح الأساسي للأسئلة متاحاً لك.");
+        } else {
+            appendChatBubble(
+                histEl,
+                offendingMsg,
+                "⚠️ تنبيه أكاديمي (1/2): محرك MEDCORE AI مخصص للأسئلة والمناقشات الطبية فقط. تكرار الأسئلة خارج النطاق الطبي مرة أخرى سيؤدي لإغلاق ميزة الشات لحسابك تلقائياً.",
+                true
+            );
+        }
+    }
+
+    async function activateStudentPromoCode() {
+        const code = document.getElementById('student-promo-input').value.trim();
+        const msg = document.getElementById('promo-status-msg');
+        if (!code) return;
+        msg.innerText = '⏳ جاري التحقق من الكود...';
+        try {
+            const snap = await rtdb.ref('promo_codes/' + code).once('value');
+            if (!snap.exists() || !snap.val().active) {
+                msg.style.color = 'var(--error)';
+                msg.innerText = '❌ هذا الكود غير صحيح أو منتهي الصلاحية.';
+                return;
+            }
+            const d = snap.val();
+            const usedCodes = JSON.parse(localStorage.getItem('mq_used_promos') || '[]');
+            if (usedCodes.includes(code)) {
+                msg.style.color = 'var(--warning)';
+                msg.innerText = '⚠️ لقد قمت بتفعيل هذا الكود مسبقاً على جهازك.';
+                return;
+            }
+            await rtdb.ref('promo_codes/' + code + '/activationCount').set(firebase.database.ServerValue.increment(1));
+            usedCodes.push(code);
+            safeSetLocalStorage('mq_used_promos', JSON.stringify(usedCodes));
+            safeSetLocalStorage('mq_ai_tier', 'pro');
+            msg.style.color = 'var(--success)';
+            msg.innerText = `🎉 تم تفعيل الباقة بنجاح لمدة ${d.durationHours || 24} ساعة!`;
+        } catch (e) {
+            msg.style.color = 'var(--error)';
+            msg.innerText = '❌ حدث خطأ أثناء التفعيل.';
+        }
+    }
+
+    // ==========================================================================
+    // 3. محرك المحاضرات القياسي واستكمال التقدم
+    // ==========================================================================
+    function cacheLectureOffline(lecId, data) {
+        const key = 'mq_offline_' + lecId.toLowerCase();
+        const indexKey = 'mq_offline_lru';
+        let lru = JSON.parse(localStorage.getItem(indexKey) || '[]').filter(k => k !== key);
+        lru.push(key);
+        while (lru.length > 10) {
+            const oldest = lru.shift();
+            localStorage.removeItem(oldest);
+        }
+        safeSetLocalStorage(indexKey, JSON.stringify(lru));
+        safeSetLocalStorage(key, JSON.stringify(data));
+    }
+
+    async function fetchLectureWithOfflineFallback(lecId) {
+        try {
+            const doc = await db.collection('lectures').doc(lecId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                cacheLectureOffline(lecId, data);
+                return { exists: true, id: doc.id, data };
+            }
+            return { exists: false };
+        } catch (err) {
+            const cached = localStorage.getItem('mq_offline_' + lecId.toLowerCase());
+            if (cached) {
+                showToast('⚠️ تم تشغيل وضع الأوفلاين من النسخة المحفوظة بجهازك');
+                return { exists: true, id: lecId, data: JSON.parse(cached) };
+            }
+            throw err;
+        }
+    }
+
+    async function loadStandardLecture(id) {
+        const loadingView = document.getElementById('loading-view');
+        loadingView.style.display = 'block';
+
+        try {
+            const res = await fetchLectureWithOfflineFallback(id);
+            if (!res.exists || !Array.isArray(res.data.questions) || res.data.questions.length === 0) {
+                const ospeDoc = await db.collection('ospe_labs').doc(id).get().catch(() => ({ exists: false }));
+                if (ospeDoc.exists) {
+                    loadingView.style.display = 'none';
+                    launchOspeLabEngine(id);
+                    return;
+                }
+                loadingView.innerHTML = `
+                    <div style="font-size:2.6rem; margin-bottom:10px;">⚠️</div>
+                    <h3 style="color:var(--error); margin:0 0 8px 0;">عذراً يا دكتور، لم يتم العثور على هذه المحاضرة (${escapeHTML(id)})</h3>
+                    <button type="button" class="btn-nav btn-gold" style="margin-top:12px;" onclick="window.location.href='index.html'">🏠 العودة للرئيسية</button>
+                `;
+                return;
+            }
+
+            const lecture = res.data;
+            state.all = lecture.questions.map((q, i) => ({ ...q, _origIdx: i }));
+            state.title = lecture.title || `محاضرة (${id})`;
+            state.id = id;
+            state.osce_images = lecture.osce_images || [];
+
+            loadingView.style.display = 'none';
+            document.getElementById('lecture-view').style.display = 'block';
+            document.getElementById('lec-title-display').innerText = state.title;
+            document.getElementById('all-q-badge').innerText = `(${state.all.length})`;
+
+            // عرض شارات تفكيك الـ ID تحت عنوان المحاضرة في صفحة الكويز أيضاً
+            const decoded = decodeMedcoreLectureId(id);
+            const badgesContainer = document.getElementById('lec-decoded-badges');
+            if (badgesContainer && decoded) {
+                badgesContainer.innerHTML = renderDecodedBadgesHTML(decoded);
+            }
+
+            const savedErrors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+            const errCount = state.all.filter(q => savedErrors.some(e => e.q === q.q)).length;
+            document.getElementById('err-q-badge').innerText = `(${errCount})`;
+
+            const idLower = id.toLowerCase();
+            const matchedMod = COMP_MODULES_MAP.find(m => idLower.includes(m.match));
+            if (matchedMod) {
+                const banner = document.getElementById('module-comp-banner');
+                banner.style.display = 'block';
+                banner.innerHTML = `
+                    <button type="button" class="btn-nav btn-green" style="width:100%; padding:12px; border:1.5px solid var(--gold);" onclick="window.location.href='?id=${matchedMod.key}'">
+                        🏆 ${getAppLang() === 'en' ? `Start Comprehensive Exam on ${matchedMod.key} Module` : `اضغط هنا لبدء امتحان شامل على موديول ${matchedMod.key} بالكامل`}
+                    </button>
+                `;
+            }
+
+            checkSavedQuizProgress(id);
+            db.collection('lectures').doc(id).update({ opened: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+        } catch (err) {
+            loadingView.innerHTML = `
+                <div style="font-size:2.4rem; margin-bottom:10px;">📡</div>
+                <h3 style="color:var(--error); margin:0 0 8px 0;">تعذر الاتصال بقاعدة البيانات</h3>
+                <button type="button" class="btn-nav btn-gold" style="margin-top:12px;" onclick="window.location.reload()">🔄 إعادة المحاولة</button>
+            `;
+        }
+    }
+
+    function checkSavedQuizProgress(lecId) {
+        const raw = localStorage.getItem('mq_session_state_' + lecId.toLowerCase());
+        if (!raw) return;
+        try {
+            const saved = JSON.parse(raw);
+            if (saved && saved.idx > 0 && saved.idx < saved.total && Array.isArray(saved.qIndices)) {
+                document.getElementById('resume-banner-txt').innerText = getAppLang() === 'en'
+                    ? `🔄 You have an unfinished quiz in this lecture (stopped at Question ${saved.idx + 1} of ${saved.total})`
+                    : `🔄 لديك اختبار غير مكتمل في هذه المحاضرة (توقفت عند السؤال ${saved.idx + 1} من ${saved.total})`;
+                document.getElementById('resume-banner-box').style.display = 'block';
+            }
+        } catch (_) {}
+    }
+
+    function saveCurrentQuizProgress() {
+        if (!state.id || state.idx <= 0 || state.idx >= state.cfg.l) return;
+        const payload = {
+            idx: state.idx,
+            total: state.cfg.l,
+            cfg: state.cfg,
+            scope: state.scope,
+            landmarks: state.landmarks,
+            qIndices: state.active.map(q => q._origIdx ?? 0),
+            answers: state.active.map(q => q.userAnswer || null)
+        };
+        safeSetLocalStorage('mq_session_state_' + state.id.toLowerCase(), JSON.stringify(payload));
+    }
+
+    function clearSavedQuizProgress() {
+        if (state.id) localStorage.removeItem('mq_session_state_' + state.id.toLowerCase());
+        const box = document.getElementById('resume-banner-box');
+        if (box) box.style.display = 'none';
+    }
+
+    function resumeSavedQuizNow() {
+        const raw = localStorage.getItem('mq_session_state_' + state.id.toLowerCase());
+        if (!raw) return;
+        try {
+            const saved = JSON.parse(raw);
+            state.cfg = saved.cfg || { m: 'instant', t: false, l: saved.total };
+            state.scope = saved.scope || 'all';
+            state.landmarks = saved.landmarks || [];
+            state.active = saved.qIndices.map((origIdx, i) => {
+                const baseQ = { ...(state.all[origIdx] || state.all[i] || state.all[0]) };
+                if (saved.answers && saved.answers[i]) baseQ.userAnswer = saved.answers[i];
+                return baseQ;
+            });
+            state.idx = saved.idx;
+            document.getElementById('setup-wizard').style.display = 'none';
+            document.getElementById('active-quiz-toolbar').style.display = 'flex';
+            document.getElementById('toolbar-lec-title').innerText = state.title;
+            document.getElementById('toolbar-lm-count').innerText = state.landmarks.length;
+            document.getElementById('quiz-feed-area').innerHTML = '';
+            if (state.cfg.t) startTimer();
+            renderQ();
+        } catch (e) {
+            clearSavedQuizProgress();
+        }
+    }
+
+    function nextS(c) {
+        document.getElementById(`step-${c}`).classList.remove('active');
+        document.getElementById(`step-${c + 1}`).classList.add('active');
+    }
+
+    function prevS(c) {
+        document.getElementById(`step-${c}`).classList.remove('active');
+        document.getElementById(`step-${c - 1}`).classList.add('active');
+    }
+
+    function showPartsGrid() {
+        const counts = {};
+        state.all.forEach(q => {
+            const pName = q.p || 'General';
+            counts[pName] = (counts[pName] || 0) + 1;
+        });
+        const g = document.getElementById('parts-selection-grid');
+        g.innerHTML = '';
+        Object.keys(counts).forEach(part => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'config-btn';
+            btn.dataset.p = part;
+            btn.innerHTML = `<span>${escapeHTML(part)}</span><small style="color:var(--gold); font-weight:900;">(${counts[part]})</small>`;
+            btn.onclick = () => btn.classList.toggle('selected');
+            g.appendChild(btn);
+        });
+        g.style.display = 'grid';
+        document.getElementById('p-next-wizard').style.display = 'inline-flex';
+    }
+
+    function setScope(t) {
+        state.scope = t;
+        if (t === 'all') {
+            state.active = [...state.all];
+        } else if (t === 'errors') {
+            const savedErrors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+            const errQTexts = new Set(savedErrors.map(e => e.q));
+            state.active = state.all.filter(q => errQTexts.has(q.q));
+            if (state.active.length === 0) {
+                return showMedAlert(getAppLang() === 'en' ? "Great job! You have no recorded errors in this lecture 🥳" : "ممتاز يا دكتور! ليس لديك أي أخطاء مسجلة في هذه المحاضرة 🥳");
+            }
+        } else if (t === 'custom') {
+            const selectedParts = Array.from(document.querySelectorAll('#parts-selection-grid .config-btn.selected')).map(e => e.dataset.p);
+            if (selectedParts.length === 0) {
+                return showMedAlert(getAppLang() === 'en' ? "⚠️ Please select at least one part to continue!" : "⚠️ يرجى اختيار جزء واحد على الأقل للمتابعة يا دكتور!");
+            }
+            state.active = state.all.filter(q => selectedParts.includes(q.p || 'General'));
+        }
+        document.getElementById('max-q-count').innerText = state.active.length;
+        const limitInput = document.getElementById('q-limit-input');
+        limitInput.max = state.active.length;
+        limitInput.value = '';
+        nextS(1);
+    }
+
+    function applyLimit() {
+        const input = document.getElementById('q-limit-input');
+        const valStr = input ? input.value.trim() : "";
+        const maxQ = state.active.length;
+        if (valStr === "") {
+            state.cfg.l = maxQ;
+            nextS(2);
+        } else {
+            let val = parseInt(valStr, 10);
+            if (isNaN(val) || val < 1) val = 1;
+            if (val > maxQ) val = maxQ;
+            state.cfg.l = val;
+            nextS(2);
+        }
+    }
+
+    function setMode(m) {
+        state.cfg.m = m;
+        nextS(3);
+    }
+
+    function startFinalQuiz(timed) {
+        state.cfg.t = timed;
+        state.idx = 0;
+        state.score = 0;
+        state.landmarks = [];
+        state.active = state.active.sort(() => Math.random() - 0.5).slice(0, state.cfg.l);
+
+        document.getElementById('setup-wizard').style.display = 'none';
+        document.getElementById('active-quiz-toolbar').style.display = 'flex';
+        document.getElementById('toolbar-lec-title').innerText = state.title;
+        document.getElementById('quiz-feed-area').innerHTML = '';
+        document.getElementById('quiz-feed-area').style.display = 'block';
+
+        if (state.id && state.id !== 'combo_test') {
+            db.collection('lectures').doc(state.id).update({
+                started: firebase.firestore.FieldValue.increment(1)
+            }).catch(() => {});
+        }
+
+        if (timed) startTimer();
+        renderQ();
+    }
+
+    function renderQ() {
+        const q = state.active[state.idx];
+        if (!q) {
+            finalize();
+            return;
+        }
+
+        saveCurrentQuizProgress();
+
+        const idx = state.idx;
+        const lang = getAppLang();
+        const progressPct = Math.round(((idx + 1) / state.cfg.l) * 100);
+        const card = document.createElement('article');
+        card.className = 'stack-card';
+        card.id = `q-card-box-${idx}`;
+
+        let imgHtml = '';
+        const originalIdx = (q._origIdx ?? state.all.indexOf(q)) + 1;
+        if (state.osce_images && state.osce_images.length > 0) {
+            const imgObj = state.osce_images.find(i => originalIdx >= i.from_question && originalIdx <= i.to_question);
+            if (imgObj) {
+                imgHtml = `<div style="text-align:center; margin-bottom:12px;"><img src="${escapeHTML(imgObj.image_name)}" alt="Medical Question Image" style="max-width:100%; max-height:350px; border-radius:10px; border:2px solid var(--gold); cursor:zoom-in;" onclick="window.open(this.src,'_blank')"></div>`;
+            }
+        } else if (q.imgUrl && q.imgUrl.startsWith('http')) {
+            imgHtml = `<div style="text-align:center; margin-bottom:12px;"><img src="${escapeHTML(q.imgUrl)}" alt="Medical Question Image" style="max-width:100%; max-height:350px; border-radius:10px; border:2px solid var(--gold); cursor:zoom-in;" onclick="window.open(this.src,'_blank')"></div>`;
+        }
+
+        const isSaved = state.landmarks.includes(idx);
+
+        card.innerHTML = `
+            <div class="q-meta-bar">
+                <span class="part-tag" title="${escapeHTML(q.p || state.title)}">${escapeHTML(q.p || state.title)}</span>
+                <div class="q-tools-group">
+                    <button type="button" class="btn-chip ${isSaved ? 'active' : ''}" id="lm-btn-${idx}" onclick="toggleQuestionLandmark(${idx})">
+                        🔖 ${isSaved ? (lang === 'en' ? 'Saved' : 'محفوظ') : (lang === 'en' ? 'Save' : 'حفظ')}
+                    </button>
+                    <button type="button" class="btn-chip btn-chip-report" onclick="toggleQuestionReportBox(${idx})">
+                        🚩 ${lang === 'en' ? 'Report' : 'أبلغ عن خطأ'}
+                    </button>
+                </div>
+            </div>
+
+            <div id="report-box-${idx}" style="display:none; margin-bottom:10px;" class="dynamic-section-box">
+                <label style="font-size:0.82rem; font-weight:800; display:block; margin-bottom:6px;">📝 ${lang === 'en' ? 'Describe the scientific note in this question:' : 'اكتب الملاحظة العلمية في هذا السؤال ليتم مراجعته:'}</label>
+                <textarea id="report-txt-${idx}" rows="2" style="width:100%; padding:8px; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border);"></textarea>
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button type="button" class="btn-nav btn-red" style="padding:6px 12px; font-size:0.8rem;" onclick="submitQuestionReport(${idx})">${lang === 'en' ? 'Submit' : 'إرسال للإدارة'}</button>
+                    <button type="button" class="btn-nav btn-outline" style="padding:6px 12px; font-size:0.8rem;" onclick="document.getElementById('report-box-${idx}').style.display='none'">${lang === 'en' ? 'Cancel' : 'إلغاء'}</button>
+                </div>
+            </div>
+
+            <div class="q-progress-box">
+                <div class="q-progress-header">
+                    <span>🩺 ${lang === 'en' ? `Question ${idx + 1} of ${state.cfg.l}` : `السؤال ${idx + 1} من ${state.cfg.l}`}</span>
+                    <span>${progressPct}%</span>
+                </div>
+                <div class="q-progress-track">
+                    <div class="q-progress-fill" style="width:${progressPct}%;"></div>
+                </div>
+            </div>
+
+            ${imgHtml}
+            <div class="question-text" id="q-stem-${idx}">${q.q}</div>
+            <div id="opts-cont-${idx}"></div>
+            <div id="fb-cont-${idx}"></div>
+            <button type="button" class="btn-nav btn-outline" id="skip-btn-${idx}" style="width:100%; margin-top:10px;" onclick="skipCurrentQuestion(${idx})">
+                ⏭️ ${lang === 'en' ? 'Skip Question' : 'تخطي السؤال والانتقال للتالي'}
+            </button>
+        `;
+
+        document.getElementById('quiz-feed-area').appendChild(card);
+
+        const opts = Array.isArray(q.options) ? q.options : [];
+        const isSelfEval = opts.length === 1 && (opts[0].toLowerCase().includes('show') || opts[0].includes('إظهار'));
+        const grid = card.querySelector(`#opts-cont-${idx}`);
+
+        if (isSelfEval) {
+            const revealBtn = document.createElement('button');
+            revealBtn.type = 'button';
+            revealBtn.className = 'btn-nav btn-maroon';
+            revealBtn.style.width = '100%';
+            revealBtn.innerHTML = `👀 ${lang === 'en' ? 'Show Model Answer' : 'إظهار الإجابة النموذجية (Show Model Answer)'}`;
+            revealBtn.onclick = () => handleSelfEvalReveal(q, idx, revealBtn);
+            grid.appendChild(revealBtn);
+        } else {
+            const shuffledOpts = [...opts].sort(() => Math.random() - 0.5);
+            shuffledOpts.forEach((opt, i) => {
+                const row = document.createElement('div');
+                row.className = 'option-row';
+
+                const optBtn = document.createElement('button');
+                optBtn.type = 'button';
+                optBtn.className = 'option';
+                optBtn.dataset.val = opt;
+                optBtn.innerHTML = `<b>${String.fromCharCode(65 + i)}</b> <span>${opt}</span>`;
+                optBtn.onclick = () => handleAnswer(opt, q, optBtn, idx);
+
+                const strikeBtn = document.createElement('button');
+                strikeBtn.type = 'button';
+                strikeBtn.className = 'btn-strike-opt';
+                strikeBtn.title = lang === 'en' ? 'Strike out option' : 'شطب / استبعاد هذا الخيار';
+                strikeBtn.innerHTML = '✂️';
+                strikeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    optBtn.classList.toggle('struck-out');
+                    strikeBtn.classList.toggle('active');
+                };
+
+                row.appendChild(optBtn);
+                row.appendChild(strikeBtn);
+                grid.appendChild(row);
+            });
+        }
+
+        setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 70);
+    }
+
+    function handleSelfEvalReveal(q, idx, revealBtn) {
+        revealBtn.style.display = 'none';
+        const skipBtn = document.getElementById(`skip-btn-${idx}`);
+        if (skipBtn) skipBtn.style.display = 'none';
+        const lang = getAppLang();
+
+        const fb = document.getElementById(`fb-cont-${idx}`);
+        fb.innerHTML = `
+            <div class="explanation-box">${q.d || q.a || ''}</div>
+            <div class="static-section-box" id="self-eval-box-${idx}" style="margin-top:10px; text-align:center;">
+                <p style="margin:0 0 8px 0; font-weight:800; color:var(--gold); font-size:0.88rem;">🩺 ${lang === 'en' ? 'Rate your answer to record your score:' : 'قيّم إجابتك يا دكتور لحساب درجتك بدقة:'}</p>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn-nav btn-green" style="flex:1;" onclick="submitSelfEval(${idx}, true)">✅ ${lang === 'en' ? 'I knew it' : 'إجابتي كانت صحيحة'}</button>
+                    <button type="button" class="btn-nav btn-red" style="flex:1;" onclick="submitSelfEval(${idx}, false)">❌ ${lang === 'en' ? 'Needs review' : 'أحتاج لمراجعتها'}</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function submitSelfEval(idx, isCorrect) {
+        const q = state.active[idx];
+        q.userAnswer = isCorrect ? q.a : '__SELF_WRONG__';
+        const box = document.getElementById(`self-eval-box-${idx}`);
+        if (box) {
+            box.innerHTML = isCorrect
+                ? `<b style="color:var(--success);">✅ ${getAppLang() === 'en' ? 'Counted as correct!' : 'تم احتساب السؤال صحيحاً في درجتك!'}</b>`
+                : `<b style="color:var(--error);">📌 ${getAppLang() === 'en' ? 'Saved to your Error Bank for review.' : 'تم حفظ السؤال في بنك أخطائك لمراجعته لاحقاً.'}</b>`;
+        }
+        if (isCorrect) {
+            triggerCelebration();
+            recordQuestionMastery(q, true);
+        } else {
+            saveToErrors(q);
+        }
+        incrementSolvedCounter();
+        showNextButton(idx);
+    }
+
+    function handleAnswer(sel, qObj, element, idx) {
+        const grid = document.getElementById(`opts-cont-${idx}`);
+        const allOptBtns = grid.querySelectorAll('.option');
+        const skipBtn = document.getElementById(`skip-btn-${idx}`);
+        if (skipBtn) skipBtn.style.display = 'none';
+
+        if (state.cfg.m === 'exam') {
+            if (!qObj.userAnswer) incrementSolvedCounter();
+            qObj.userAnswer = sel;
+            allOptBtns.forEach(c => c.classList.remove('selected-temp'));
+            element.classList.add('selected-temp');
+            showNextButton(idx);
+            return;
+        }
+
+        if (grid.dataset.answered === 'true') return;
+        grid.dataset.answered = 'true';
+        qObj.userAnswer = sel;
+        incrementSolvedCounter();
+
+        allOptBtns.forEach(o => o.classList.add('locked-opt'));
+
+        const correctAns = (qObj.a || '').trim();
+        const isCorrect = sel.trim() === correctAns;
+
+        if (isCorrect) {
+            element.classList.add('ans-correct');
+            triggerCelebration();
+            recordQuestionMastery(qObj, true);
+        } else {
+            element.classList.add('ans-wrong');
+            if (navigator.vibrate) navigator.vibrate(160);
+            saveToErrors(qObj);
+            allOptBtns.forEach(o => {
+                if ((o.dataset.val || '').trim() === correctAns) {
+                    o.classList.add('ans-correct');
+                }
+            });
+        }
+
+        const lang = getAppLang();
+        const fb = document.getElementById(`fb-cont-${idx}`);
+        let fbHtml = '';
+        if (qObj.d) {
+            fbHtml += `<div class="explanation-box"><span class="ans-badge">Explain</span> <b>${lang === 'en' ? 'Explanation:' : 'الشرح الأساسي:'}</b><br>${qObj.d}</div>`;
+        }
+
+        fbHtml += `
+            <div style="margin-top:10px;">
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" class="btn-chip" style="border-color:var(--gold); color:var(--gold); padding:7px 14px; font-size:0.84rem;" onclick="requestAiExplanation(${idx}, this)">
+                        🤖 ${lang === 'en' ? 'Explain & Discuss with MEDCORE AI' : 'اشرح وناقش هذا السؤال مع MEDCORE AI'}
+                    </button>
+                    <button type="button" class="btn-chip" onclick="openModal('ai-models-info')" title="MEDCORE AI Engines">ℹ️ ${lang === 'en' ? 'AI Engines' : 'المحركات'}</button>
+                </div>
+
+                <div id="ai-panel-${idx}" class="medcore-ai-panel" style="display:none;">
+                    <div class="ai-header-strip">
+                        <span style="font-weight:900; color:var(--gold); font-size:0.84rem;">🩺 ${lang === 'en' ? 'MEDCORE AI Clinical Analysis' : 'تحليل محرك MEDCORE الطبي'}</span>
+                        <span class="ai-model-badge" id="ai-model-badge-${idx}">MEDCORE AI</span>
+                    </div>
+                    <div id="ai-exp-content-${idx}" style="white-space:pre-wrap; font-size:0.92rem; line-height:1.7; unicode-bidi:plaintext;"></div>
+                    <div id="ai-chat-wrap-${idx}"></div>
+                </div>
+            </div>
+        `;
+        fb.innerHTML = fbHtml;
+        showNextButton(idx);
+    }
+
+    function showNextButton(idx) {
+        if (document.getElementById(`next-btn-act-${idx}`)) return;
+        const lang = getAppLang();
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.id = `next-btn-act-${idx}`;
+        b.className = 'btn-nav btn-gold';
+        b.style.cssText = 'width:100%; margin-top:12px; padding:13px; font-size:1rem;';
+        b.innerHTML = (idx < state.cfg.l - 1)
+            ? (lang === 'en' ? "Next Question 👇" : "السؤال التالي 👇")
+            : (lang === 'en' ? "Finish Quiz & Show Results 🏁" : "إنهاء الاختبار وعرض النتيجة 🏁");
+        b.onclick = () => {
+            b.style.display = 'none';
+            if (idx < state.cfg.l - 1) {
+                state.idx++;
+                renderQ();
+            } else {
+                finalize();
+            }
+        };
+        document.getElementById(`fb-cont-${idx}`).appendChild(b);
+    }
+
+    function skipCurrentQuestion(idx) {
+        const btn = document.getElementById(`skip-btn-${idx}`);
+        if (btn) btn.style.display = 'none';
+        if (state.idx < state.cfg.l - 1) {
+            state.idx++;
+            renderQ();
+        } else {
+            finalize();
+        }
+    }
+
+    function triggerCelebration() {
+        try { confetti({ particleCount: 65, spread: 60, origin: { y: 0.65 }, zIndex: 99999 }); } catch (_) {}
+        const quotes = getAppLang() === 'en'
+            ? ["Great job, Doctor! 👏", "Future Consultant! 🩺", "Perfect Answer! 🌟", "Brilliant! ✨"]
+            : ["عاش يا دكتور! 👏", "طبيب المستقبل! 🩺", "إجابة مثالية! 🌟", "الله ينور عليك! ✨"];
+        showToast(quotes[Math.floor(Math.random() * quotes.length)]);
+    }
+
+    function toggleQuestionLandmark(idx) {
+        const pos = state.landmarks.indexOf(idx);
+        const btn = document.getElementById(`lm-btn-${idx}`);
+        const lang = getAppLang();
+        if (pos > -1) {
+            state.landmarks.splice(pos, 1);
+            if (btn) { btn.classList.remove('active'); btn.innerHTML = `🔖 ${lang === 'en' ? 'Save' : 'حفظ'}`; }
+        } else {
+            state.landmarks.push(idx);
+            if (btn) { btn.classList.add('active'); btn.innerHTML = `🔖 ${lang === 'en' ? 'Saved' : 'محفوظ'}`; }
+        }
+        document.getElementById('toolbar-lm-count').innerText = state.landmarks.length;
+        saveCurrentQuizProgress();
+    }
+
+    function toggleLandmarkModal() {
+        const list = document.getElementById('landmarks-content-list');
+        const lang = getAppLang();
+        if (state.landmarks.length === 0) {
+            list.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:18px;">${lang === 'en' ? 'No bookmarked questions yet.' : 'لم تقم بحفظ أي أسئلة في قائمة المراجعة بعد.'}</p>`;
+        } else {
+            list.innerHTML = state.landmarks.map(idx => {
+                const q = state.active[idx];
+                return `
+                    <div class="static-section-box" style="margin-bottom:8px;">
+                        <b style="color:var(--gold);">${lang === 'en' ? `Question #${idx + 1}` : `السؤال رقم ${idx + 1}`}</b>
+                        <p style="font-size:0.86rem; direction:ltr; text-align:left; margin:5px 0;">${escapeHTML(stripHTML(q?.q || '').substring(0, 120))}...</p>
+                        <button type="button" class="btn-nav btn-blue" style="width:100%; padding:7px;" onclick="scrollToLandmarkQuestion(${idx})">${lang === 'en' ? 'Jump to Question ⬇️' : 'الانتقال للسؤال ⬇️'}</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        openModal('landmarks');
+    }
+
+    function scrollToLandmarkQuestion(idx) {
+        closeModal('landmarks');
+        const card = document.getElementById(`q-card-box-${idx}`);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.borderColor = 'var(--gold-bright)';
+            setTimeout(() => card.style.borderColor = '', 1800);
+        }
+    }
+
+    function toggleQuestionReportBox(idx) {
+        const box = document.getElementById(`report-box-${idx}`);
+        if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function submitQuestionReport(idx) {
+        const q = state.active[idx];
+        const txtEl = document.getElementById(`report-txt-${idx}`);
+        const issue = txtEl ? txtEl.value.trim() : '';
+        if (!issue) return showMedAlert("يرجى كتابة ملاحظتك على السؤال أولاً يا دكتور.");
+
+        try {
+            await db.collection('complaints').add({
+                type: 'question',
+                lectureId: state.id || 'general',
+                lectureTitle: state.title || '',
+                questionIndex: q._origIdx ?? idx,
+                questionText: stripHTML(q.q),
+                issueDescription: issue,
+                text: `[بلاغ سؤال #${(q._origIdx ?? idx) + 1}]: ${issue}`,
+                lec: state.id || state.title,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                time: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'new'
+            });
+            showToast("✅ تم إرسال بلاغك للإدارة بنجاح، شكراً لدقتك العلمية!");
+            document.getElementById(`report-box-${idx}`).style.display = 'none';
+            txtEl.value = '';
+        } catch (e) {
+            showMedAlert("تعذر إرسال البلاغ حالياً، حاول مرة أخرى.");
+        }
+    }
+
+    function finalize() {
+        if (state.timer) clearInterval(state.timer);
+        clearSavedQuizProgress();
+
+        document.getElementById('quiz-feed-area').style.display = 'none';
+        document.getElementById('active-quiz-toolbar').style.display = 'none';
+        document.getElementById('global-timer').style.display = 'none';
+        document.getElementById('result-view').style.display = 'block';
+
+        state.score = 0;
+        state.parts = {};
+        const itemStatsUpdate = {};
+
+        state.active.forEach(q => {
+            const pName = q.p || 'General';
+            if (!state.parts[pName]) state.parts[pName] = { c: 0, t: 0 };
+            state.parts[pName].t++;
+
+            const isCorrect = q.userAnswer && q.userAnswer.trim() === (q.a || '').trim();
+            if (isCorrect) {
+                state.score++;
+                state.parts[pName].c++;
+                recordQuestionMastery(q, true);
+            } else {
+                saveToErrors(q);
+            }
+
+            if (q._origIdx !== undefined) {
+                itemStatsUpdate[`item_stats.q_${q._origIdx}.${isCorrect ? 'ok' : 'err'}`] = firebase.firestore.FieldValue.increment(1);
+            }
+        });
+
+        const totalQ = Math.max(1, state.cfg.l || state.active.length);
+        const pct = Math.round((state.score / totalQ) * 100);
+
+        document.getElementById('final-pct-display').innerText = pct + '%';
+        document.getElementById('final-raw-score').innerText = `${state.score} / ${totalQ}`;
+
+        const lang = getAppLang();
+        let phrase = "";
+        if (pct >= 85) {
+            phrase = lang === 'en' ? "Outstanding performance, Doctor! 🥇🏆" : "أداء استثنائي يا دكتور! تستحق وسام التميز الطبي 🥇🏆";
+            try { confetti({ particleCount: 140, spread: 75, origin: { y: 0.6 } }); } catch (_) {}
+        } else if (pct >= 75) phrase = lang === 'en' ? "Very good! Keep pushing toward the top 💪" : "جيد جداً! مجهود محترم ولكن يمكنك الوصول للقمة 💪";
+        else if (pct >= 60) phrase = lang === 'en' ? "Fair, but this topic needs deeper review 📚" : "مقبول، ولكن هذا الجزء يحتاج لمراجعة أعمق لتثبيت المعلومة 📚";
+        else phrase = lang === 'en' ? "Review your errors carefully and try again 🩺" : "لا تيأس! راجع أخطاءك بتركيز وحاول مرة أخرى، أنت قادر على تجاوزها 🩺";
+
+        const phEl = document.getElementById('final-phrase');
+        phEl.innerText = phrase;
+        phEl.style.color = (pct < 60) ? "var(--error)" : "var(--success)";
+
+        const revList = document.getElementById('rev-parts-list');
+        revList.innerHTML = '';
+        let needsRev = false;
+        for (let p in state.parts) {
+            const pPct = (state.parts[p].c / state.parts[p].t) * 100;
+            if (pPct < 60) {
+                needsRev = true;
+                revList.innerHTML += `<li>${escapeHTML(p)} (${Math.round(pPct)}%)</li>`;
+            }
+        }
+        document.getElementById('revision-alert').style.display = needsRev ? 'block' : 'none';
+
+        let reviewHTML = `<h3 style="margin-top:22px; border-bottom:2px solid var(--border); padding-bottom:8px;">📋 ${lang === 'en' ? 'Detailed Quiz Review:' : 'المراجعة التفصيلية للاختبار:'}</h3>`;
+        state.active.forEach((q, i) => {
+            const isCorrect = q.userAnswer && q.userAnswer.trim() === (q.a || '').trim();
+            const color = isCorrect ? 'var(--success)' : 'var(--error)';
+            reviewHTML += `
+                <div class="stack-card" style="border-left-color:${color}; padding:14px; margin-bottom:12px;">
+                    <div class="question-text" style="margin-top:0;"><b>${i + 1}.</b> ${q.q}</div>
+                    <p style="margin:5px 0; direction:ltr; text-align:left;">Your Answer: <b style="color:${color};">${escapeHTML(q.userAnswer === '__SELF_WRONG__' ? 'Needs Review' : (q.userAnswer || 'Unanswered'))}</b></p>
+                    ${!isCorrect ? `<p style="margin:5px 0; direction:ltr; text-align:left;">Correct Answer: <b style="color:var(--success);">${escapeHTML(q.a)}</b></p>` : ''}
+                    ${q.d ? `<div class="explanation-box">${q.d}</div>` : ''}
+                </div>
+            `;
+        });
+        document.getElementById('exam-review-list').innerHTML = reviewHTML;
+
+        saveHistory(pct);
+        flushSolvedQuestionsToDB();
+
+        if (state.id) {
+            const scopeField = state.scope === 'all' ? 'solved_all' : state.scope === 'errors' ? 'solved_errors' : 'solved_custom';
+            db.collection('lectures').doc(state.id).update({
+                views: firebase.firestore.FieldValue.increment(1),
+                subs: firebase.firestore.FieldValue.increment(1),
+                avg_score: firebase.firestore.FieldValue.increment(pct),
+                [scopeField]: firebase.firestore.FieldValue.increment(1),
+                ...itemStatsUpdate
+            }).catch(() => {});
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function startTimer() {
+        let s = state.cfg.l * 45;
+        const timerEl = document.getElementById('global-timer');
+        timerEl.style.display = 'inline-flex';
+        state.timer = setInterval(() => {
+            s--;
+            const m = Math.floor(s / 60), sec = s % 60;
+            timerEl.innerText = `⏱️ ${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+            if (s <= 0) {
+                clearInterval(state.timer);
+                finalize();
+            }
+        }, 1000);
+    }
+
+    // ==========================================================================
+    // 4. بنك الأخطاء، الدرجات، والأنظمة الفرعية (التجميعات، الشامل، OSPE)
+    // ==========================================================================
+    function saveToErrors(q) {
+        let errors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+        const existing = errors.find(x => x.q === q.q);
+        if (existing) {
+            existing.streak = 0;
+            existing.lastWrong = Date.now();
+        } else {
+            errors.push({
+                p: q.p || state.title || 'General',
+                q: q.q,
+                options: q.options || [],
+                a: q.a,
+                d: q.d || '',
+                streak: 0,
+                addedAt: Date.now()
+            });
+        }
+        safeSetLocalStorage('mq_e', JSON.stringify(errors));
+        updateErrorBadgeCount();
+    }
+
+    function recordQuestionMastery(q, isCorrect) {
+        if (!isCorrect) return;
+        let errors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+        const idx = errors.findIndex(x => x.q === q.q);
+        if (idx === -1) return;
+
+        errors[idx].streak = (errors[idx].streak || 0) + 1;
+        if (errors[idx].streak >= 2) {
+            errors.splice(idx, 1);
+            showToast(getAppLang() === 'en' ? "🎉 Mastered twice and removed from your Error Bank!" : "🎉 أتقنت هذا السؤال مرتين متتاليتين وتمت إزالته من بنك أخطائك!");
+        }
+        safeSetLocalStorage('mq_e', JSON.stringify(errors));
+        updateErrorBadgeCount();
+    }
+
+    function updateErrorBadgeCount() {
+        const errors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+        const el = document.getElementById('sb-err-count');
+        if (el) el.innerText = errors.length;
+    }
+
+    function saveHistory(pct) {
+        let h = JSON.parse(localStorage.getItem('mq_h') || '[]');
+        h.unshift({ t: state.title || 'Quiz', s: pct, d: new Date().toLocaleDateString('ar-EG') });
+        if (h.length > 50) h = h.slice(0, 50);
+        safeSetLocalStorage('mq_h', JSON.stringify(h));
+    }
+
+    function loadHistoryUI() {
+        const h = JSON.parse(localStorage.getItem('mq_h') || '[]');
+        const cont = document.getElementById('history-content-list');
+        if (h.length === 0) {
+            cont.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:18px;">${getAppLang() === 'en' ? 'No quiz history yet.' : 'لا يوجد سجل اختبارات حتى الآن.'}</p>`;
+            return;
+        }
+        cont.innerHTML = h.map(x => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid var(--border); font-weight:800;">
+                <div>
+                    <div>${escapeHTML(x.t)}</div>
+                    <small style="color:var(--text-muted);">${escapeHTML(x.d)}</small>
+                </div>
+                <span class="status-pill">${Number(x.s) || 0}%</span>
+            </div>
+        `).join('');
+    }
+
+    function loadErrorsUI() {
+        const errors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+        const cont = document.getElementById('errors-content-list');
+        const lang = getAppLang();
+        if (errors.length === 0) {
+            cont.innerHTML = `<p style="text-align:center; color:var(--success); font-weight:800; padding:22px;">🎉 ${lang === 'en' ? 'Your Error Bank is clean! Keep excelling!' : 'ليس لديك أي أخطاء مسجلة، استمر في تفوقك يا دكتور!'}</p>`;
+            return;
+        }
+        cont.innerHTML = `
+            <div style="margin-bottom:10px; display:flex; gap:6px;">
+                <button type="button" class="btn-nav btn-gold" style="flex:1;" onclick="startGlobalErrorBankQuiz()">🚀 ${lang === 'en' ? `Quiz All Errors Now (${errors.length})` : `امتحن على جميع أخطائك الآن (${errors.length})`}</button>
+                <button type="button" class="btn-nav btn-outline" onclick="if(confirm('مسح سجل الأخطاء بالكامل؟')){localStorage.removeItem('mq_e'); loadErrorsUI(); updateErrorBadgeCount();}">🗑️</button>
+            </div>
+        ` + errors.map(x => `
+            <div class="static-section-box" style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.76rem; color:var(--gold); margin-bottom:4px;">
+                    <span>📚 ${escapeHTML(x.p || 'General')}</span>
+                    <span>${lang === 'en' ? 'Mastery:' : 'مستوى الإتقان:'} ${x.streak || 0} / 2</span>
+                </div>
+                <div style="direction:ltr; text-align:left; font-weight:800; font-size:0.9rem;">${x.q}</div>
+                <div style="margin-top:4px; color:var(--success); font-weight:800; direction:ltr; text-align:left;">✅ Correct: ${escapeHTML(x.a)}</div>
+            </div>
+        `).join('');
+    }
+
+    function startGlobalErrorBankQuiz() {
+        const errors = JSON.parse(localStorage.getItem('mq_e') || '[]');
+        if (errors.length === 0) return;
+        closeModal('errors');
+        state.all = errors;
+        state.active = [...errors];
+        state.title = getAppLang() === 'en' ? "Smart Error Bank Review ⚠️" : "مراجعة بنك الأخطاء الذكي ⚠️";
+        state.id = "error_bank";
+        state.scope = "errors";
+        document.getElementById('home-view').style.display = 'none';
+        document.getElementById('sub-engine-view').style.display = 'none';
+        document.getElementById('lecture-view').style.display = 'block';
+        document.getElementById('lec-title-display').innerText = state.title;
+        document.getElementById('max-q-count').innerText = state.active.length;
+        document.getElementById('q-limit-input').value = state.active.length;
+        nextS(1);
+    }
+
+    async function launchModulesBrowserEngine() {
+        const sub = document.getElementById('sub-engine-view');
+        sub.style.display = 'block';
+        const lang = getAppLang();
+        sub.innerHTML = `
+            <div class="quiz-card">
+                <div class="lecture-main-banner">
+                    <h2 style="margin:0; font-size:1.15rem;">📚 ${lang === 'en' ? 'Comprehensive Modules' : 'الموديولات والاختبارات الشاملة'}</h2>
+                    <button type="button" class="btn-chip" onclick="window.location.href='index.html'">🏠 ${lang === 'en' ? 'Home' : 'الرئيسية'}</button>
+                </div>
+                <div id="modules-grid-box" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; margin-top:12px;">
+                    <p style="text-align:center; grid-column:1/-1;">⏳ ${uiTxt('loadingTitle')}</p>
+                </div>
+            </div>
+            <div id="module-picker-modal" class="modal-overlay">
+                <div class="modal-card">
+                    <button type="button" class="close-btn" onclick="document.getElementById('module-picker-modal').style.display='none'">✖</button>
+                    <h3 id="picker-mod-title" style="margin-top:0; color:var(--gold);"></h3>
+                    <button type="button" id="btn-full-mod-start" class="btn-nav btn-maroon" style="width:100%; margin-bottom:10px;">🏆 ${lang === 'en' ? 'Start Full Module Exam' : 'بدء اختبار شامل لكل محاضرات الموديول'}</button>
+                    <label style="display:flex; align-items:center; gap:8px; font-weight:800; margin-bottom:8px; cursor:pointer;">
+                        <input type="checkbox" id="cb-select-all-mod" onchange="document.querySelectorAll('.mod-lec-cb').forEach(c=>c.checked=this.checked)"> ${lang === 'en' ? 'Select All' : 'تحديد الكل'}
+                    </label>
+                    <div id="picker-lec-list" style="max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-elevated);"></div>
+                    <button type="button" id="btn-custom-mod-start" class="btn-nav btn-gold" style="width:100%; margin-top:12px;">🚀 ${lang === 'en' ? 'Start Custom Exam' : 'بدء الاختبار المخصص'}</button>
+                </div>
+            </div>
+        `;
+
+        try {
+            const snap = await db.collection('modules').orderBy('createdAt', 'desc').get();
+            const grid = document.getElementById('modules-grid-box');
+            grid.innerHTML = '';
+            if (snap.empty) {
+                grid.innerHTML = `<p style="text-align:center; grid-column:1/-1; color:var(--text-muted);">لا توجد موديولات مجمعة حالياً.</p>`;
+                return;
+            }
+            snap.forEach(doc => {
+                const d = doc.data();
+                const lecs = d.lectures || [];
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'config-btn';
+                card.style.marginTop = '0';
+                card.innerHTML = `<span>📦 <b>${escapeHTML(d.name)}</b></span><small style="color:var(--gold); font-weight:900;">(${lecs.length})</small>`;
+                card.onclick = () => {
+                    document.getElementById('picker-mod-title').innerText = d.name;
+                    const list = document.getElementById('picker-lec-list');
+                    list.innerHTML = lecs.map(l => `
+                        <label style="display:flex; align-items:center; gap:8px; padding:7px; border-bottom:1px solid var(--border); cursor:pointer; font-weight:700;">
+                            <input type="checkbox" class="mod-lec-cb" value="${escapeHTML(l.id)}" data-title="${escapeHTML(l.title)}">
+                            <span>${escapeHTML(l.title)}</span>
+                        </label>
+                    `).join('');
+                    document.getElementById('module-picker-modal').style.display = 'flex';
+
+                    document.getElementById('btn-full-mod-start').onclick = () => {
+                        const ids = lecs.map(l => l.id).join(',');
+                        window.location.href = `?combo=${encodeURIComponent(ids)}&title=${encodeURIComponent('شامل: ' + d.name)}`;
+                    };
+                    document.getElementById('btn-custom-mod-start').onclick = () => {
+                        const checked = Array.from(document.querySelectorAll('.mod-lec-cb:checked'));
+                        if (checked.length === 0) return showMedAlert("يرجى اختيار محاضرة واحدة على الأقل!");
+                        const ids = checked.map(c => c.value).join(',');
+                        const title = checked.length > 2 ? `اختبار مخصص (${checked.length} محاضرات)` : `شامل: ${checked.map(c => c.dataset.title).join(' + ')}`;
+                        window.location.href = `?combo=${encodeURIComponent(ids)}&title=${encodeURIComponent(title)}`;
+                    };
+                };
+                grid.appendChild(card);
+            });
+        } catch (e) {
+            document.getElementById('modules-grid-box').innerHTML = `<p style="color:var(--error);">تعذر تحميل الموديولات.</p>`;
+        }
+    }
+
+    async function launchComboQuizEngine(comboStr, title) {
+        const ids = comboStr.split(',').map(s => s.trim()).filter(Boolean);
+        document.getElementById('loading-view').style.display = 'block';
+        try {
+            const docs = await Promise.all(ids.map(id => fetchLectureWithOfflineFallback(id)));
+            let combined = [];
+            docs.forEach(d => {
+                if (d.exists && Array.isArray(d.data.questions)) {
+                    const lecTitle = d.data.title || d.id;
+                    combined = combined.concat(d.data.questions.map((q, idx) => ({
+                        ...q,
+                        p: q.p ? `${lecTitle} - ${q.p}` : lecTitle,
+                        _origIdx: idx
+                    })));
+                }
+            });
+            document.getElementById('loading-view').style.display = 'none';
+            if (combined.length === 0) {
+                return showMedAlert("لم يتم العثور على أسئلة في المحاضرات المحددة!", () => window.location.href = 'index.html');
+            }
+            state.all = combined;
+            state.title = title;
+            state.id = 'combo_test';
+            document.getElementById('lecture-view').style.display = 'block';
+            document.getElementById('lec-title-display').innerText = title;
+            document.getElementById('all-q-badge').innerText = `(${combined.length})`;
+        } catch (e) {
+            document.getElementById('loading-view').style.display = 'none';
+            showMedAlert("حدث خطأ أثناء تجميع الاختبار الشامل.");
+        }
+    }
+
+    async function launchModuleComprehensiveEngine(modObj) {
+        document.getElementById('loading-view').style.display = 'block';
+        try {
+            const catalog = await getLecturesCatalog();
+            const matchedIds = catalog
+                .filter(item => item.id.toLowerCase().includes(modObj.match) && item.id.toLowerCase() !== modObj.match)
+                .map(item => item.id);
+
+            if (matchedIds.length === 0) {
+                document.getElementById('loading-view').style.display = 'none';
+                return showMedAlert(`لا توجد محاضرات مسجلة تحت موديول ${modObj.key} حالياً.`, () => window.location.href = 'index.html');
+            }
+
+            await launchComboQuizEngine(matchedIds.join(','), `🏆 الامتحان الشامل لموديول ${modObj.key}`);
+        } catch (e) {
+            document.getElementById('loading-view').style.display = 'none';
+            showMedAlert("تعذر تجميع أسئلة الموديول.");
+        }
+    }
+
+    async function launchOspeLabEngine(ospeId) {
+        const loading = document.getElementById('loading-view');
+        loading.style.display = 'block';
+        try {
+            let doc = await db.collection('ospe_labs').doc(ospeId).get();
+            if (!doc.exists) {
+                const lecDoc = await db.collection('lectures').doc(ospeId).get();
+                if (lecDoc.exists) {
+                    loading.style.display = 'none';
+                    await loadStandardLecture(ospeId);
+                    return;
+                }
+                loading.style.display = 'none';
+                return showMedAlert("عذراً، هذا المعمل غير متوفر.", () => window.location.href = 'index.html');
+            }
+
+            loading.style.display = 'none';
+            const data = doc.data();
+            const convertedQuestions = (data.questions || []).map((q, i) => ({
+                p: 'OSPE Station',
+                q: `<div style="text-align:center; margin-bottom:10px;"><img src="${escapeHTML(q.img)}" alt="OSPE Station" style="max-width:100%; max-height:350px; border-radius:10px; border:2px solid var(--gold);"></div><div>${escapeHTML(q.q)}</div>`,
+                options: ['Show Model Answer'],
+                a: 'Show Model Answer',
+                d: `<div style="direction:ltr; text-align:left;"><b style="color:var(--success);">Model Answer:</b><br>${escapeHTML(q.a || '').replace(/\n/g, '<br>')}</div>`,
+                _origIdx: i
+            }));
+
+            state.all = convertedQuestions;
+            state.title = data.title || `OSPE (${ospeId})`;
+            state.id = ospeId;
+            document.getElementById('lecture-view').style.display = 'block';
+            document.getElementById('lec-title-display').innerText = state.title;
+            document.getElementById('all-q-badge').innerText = `(${state.all.length})`;
+
+            db.collection('ospe_labs').doc(ospeId).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+        } catch (e) {
+            loading.style.display = 'none';
+            showMedAlert("تعذر تحميل معمل الأوسبي.");
+        }
+    }
+
+    // ==========================================================================
+    // 5. الرادار، الإشعارات، والقاموس الطبي العائم
+    // ==========================================================================
+    let unsentSolvedCount = 0;
+
+    function incrementSolvedCounter() {
+        unsentSolvedCount++;
+        safeSetLocalStorage('mq_cached_q_count', String(unsentSolvedCount));
+    }
+
+    function flushSolvedQuestionsToDB() {
+        const qCount = parseInt(localStorage.getItem('mq_cached_q_count'), 10) || unsentSolvedCount;
+        if (qCount > 0) {
+            unsentSolvedCount = 0;
+            localStorage.removeItem('mq_cached_q_count');
+            db.collection('analytics').doc('global_stats').set({
+                total_solved_questions: firebase.firestore.FieldValue.increment(qCount)
+            }, { merge: true }).catch(() => {});
+        }
+    }
+
+    window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushSolvedQuestionsToDB();
+    });
+
+    function initRadarAndTracker() {
+        const params = new URLSearchParams(window.location.search);
+        const currentId = (params.get('id') || params.get('ospe') || 'home').toLowerCase();
+
+        const today = new Date().toISOString().split('T')[0];
+        const month = today.substring(0, 7);
+        const lecUpper = currentId.toUpperCase();
+        db.collection('analytics').doc('visits_stats').set({
+            total_visits: firebase.firestore.FieldValue.increment(1),
+            [`months.${month}.total`]: firebase.firestore.FieldValue.increment(1),
+            [`months.${month}.lecs.${lecUpper}`]: firebase.firestore.FieldValue.increment(1),
+            [`days.${today}.total`]: firebase.firestore.FieldValue.increment(1),
+            [`days.${today}.lecs.${lecUpper}`]: firebase.firestore.FieldValue.increment(1)
+        }, { merge: true }).catch(() => {});
+
+        let presenceTimer = null;
+        const ind = document.getElementById('live-indicator');
+        const txt = document.getElementById('live-txt');
+
+        const startRadar = () => {
+            if (presenceTimer) return;
+            if (ind) ind.style.display = 'inline-flex';
+            const pRef = rtdb.ref('presence/' + deviceId);
+            const pushBeat = () => {
+                pRef.set({
+                    lectureId: currentId,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                }).catch(() => {});
+            };
+            pushBeat();
+            presenceTimer = setInterval(pushBeat, 25000);
+            pRef.onDisconnect().remove();
+
+            rtdb.ref('presence').on('value', snap => {
+                const now = Date.now();
+                const all = snap.val() || {};
+                let total = 0, inLec = 0;
+                for (let uid in all) {
+                    if (now - (all[uid].lastSeen || 0) < 120000) {
+                        total++;
+                        if (all[uid].lectureId === currentId) inLec++;
+                    }
+                }
+                if (txt) txt.innerText = getAppLang() === 'en' ? `${total} Online` : `${total} متصل (${inLec} هنا)`;
+            });
+        };
+
+        const stopRadar = () => {
+            if (presenceTimer) { clearInterval(presenceTimer); presenceTimer = null; }
+            if (ind) ind.style.display = 'none';
+            rtdb.ref('presence/' + deviceId).remove().catch(() => {});
+        };
+
+        db.collection('admin_settings').doc('radar').onSnapshot(doc => {
+            const active = doc.exists ? doc.data().active !== false : true;
+            if (active) startRadar();
+            else stopRadar();
+        });
+    }
+
+    let allFetchedNotifs = [];
+    function initNotificationCenter() {
+        rtdb.ref('notifications').on('value', snap => {
+            allFetchedNotifs = [];
+            snap.forEach(child => {
+                allFetchedNotifs.push({ key: child.key, ...child.val() });
+            });
+            allFetchedNotifs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            const readNotifs = JSON.parse(localStorage.getItem('mq_read_notifs') || '[]');
+            const unread = allFetchedNotifs.filter(n => !readNotifs.includes(n.key)).length;
+
+            document.getElementById('main-notif-badge').style.display = unread > 0 ? 'block' : 'none';
+            document.getElementById('sb-notif-badge').style.display = unread > 0 ? 'inline-block' : 'none';
+
+            const recLogs = JSON.parse(localStorage.getItem('mq_rec_v8') || '{}');
+            allFetchedNotifs.forEach(n => {
+                if (!recLogs[n.key]) {
+                    recLogs[n.key] = true;
+                    safeSetLocalStorage('mq_rec_v8', JSON.stringify(recLogs));
+                    const devRef = rtdb.ref(`notifications/${n.key}/devices/received/${deviceId}`);
+                    devRef.once('value', dSnap => {
+                        if (!dSnap.exists()) {
+                            devRef.set(true);
+                            rtdb.ref(`notifications/${n.key}/stats/received`).set(firebase.database.ServerValue.increment(1));
+                        }
+                    });
+                }
+            });
+
+            renderNotificationsList(readNotifs);
+        });
+    }
+
+    function renderNotificationsList(readNotifs) {
+        const list = document.getElementById('mq-notif-list');
+        if (!list) return;
+        if (allFetchedNotifs.length === 0) {
+            list.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:18px;">لا توجد تحديثات حالياً.</p>`;
+            return;
+        }
+
+        list.innerHTML = allFetchedNotifs.map((n, idx) => {
+            const isPinned = idx === allFetchedNotifs.length - 1 && allFetchedNotifs.length > 1;
+            const isUnread = !readNotifs.includes(n.key);
+            const dateStr = n.timestamp ? new Date(n.timestamp).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            const safeLink = (n.link && /^https?:\/\//i.test(n.link.trim())) ? n.link.trim() : '';
+
+            return `
+                <div class="${isPinned ? 'dynamic-section-box' : 'static-section-box'}" style="${isPinned ? 'order:-1;' : ''} margin-bottom:0; text-align:center;">
+                    <div style="font-size:0.76rem; color:var(--gold); margin-bottom:4px;">
+                        ${isPinned ? '📌 مثبت | ' : ''}${isUnread ? '🔴 جديد | ' : ''}🕒 ${escapeHTML(dateStr)}
+                    </div>
+                    <div style="font-weight:700; white-space:pre-wrap; font-size:0.9rem;">${escapeHTML(n.message || '')}</div>
+                    ${safeLink ? `<a href="${escapeHTML(safeLink)}" target="_blank" rel="noopener noreferrer" class="btn-nav btn-green" style="width:100%; margin-top:8px; padding:7px;" onclick="trackNotifClick('${escapeHTML(n.key)}')">✨ اضغط هنا</a>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function openNotifModal() {
+        openModal('notifs');
+        const viewLogs = JSON.parse(localStorage.getItem('mq_view_v8') || '{}');
+        allFetchedNotifs.forEach(n => {
+            if (!viewLogs[n.key]) {
+                viewLogs[n.key] = true;
+                safeSetLocalStorage('mq_view_v8', JSON.stringify(viewLogs));
+                const devRef = rtdb.ref(`notifications/${n.key}/devices/viewed/${deviceId}`);
+                devRef.once('value', dSnap => {
+                    if (!dSnap.exists()) {
+                        devRef.set(true);
+                        rtdb.ref(`notifications/${n.key}/stats/viewed`).set(firebase.database.ServerValue.increment(1));
+                    }
+                });
+            }
+        });
+        safeSetLocalStorage('mq_read_notifs', JSON.stringify(allFetchedNotifs.map(n => n.key)));
+        document.getElementById('main-notif-badge').style.display = 'none';
+        document.getElementById('sb-notif-badge').style.display = 'none';
+    }
+
+    function trackNotifClick(key) {
+        const clickLogs = JSON.parse(localStorage.getItem('mq_click_v8') || '{}');
+        if (!clickLogs[key]) {
+            clickLogs[key] = true;
+            safeSetLocalStorage('mq_click_v8', JSON.stringify(clickLogs));
+            const devRef = rtdb.ref(`notifications/${key}/devices/clicked/${deviceId}`);
+            devRef.once('value', dSnap => {
+                if (!dSnap.exists()) {
+                    devRef.set(true);
+                    rtdb.ref(`notifications/${key}/stats/clicked`).set(firebase.database.ServerValue.increment(1));
+                }
+            });
+        }
+    }
+
+    function closeDictSheet() {
+        document.getElementById('mq-dict').classList.remove('open');
+    }
+
+    function initMedicalDictionary() {
+        let searchCounter = 0;
+
+        const lookupTerm = async (rawTerm) => {
+            searchCounter++;
+            const myId = searchCounter;
+            const sheet = document.getElementById('mq-dict');
+            const status = document.getElementById('mq-d-status');
+            const res = document.getElementById('mq-d-res');
+
+            sheet.classList.add('open');
+            status.style.display = 'block';
+            res.style.display = 'none';
+            status.innerHTML = `⏳ <span class="mq-hl-term">${escapeHTML(rawTerm)}</span>...`;
+
+            let localTermHit = null;
+            if (typeof window.mqSearchTerms === 'function') {
+                const hits = window.mqSearchTerms(rawTerm);
+                if (hits && hits.length > 0 && hits[0].abbr.toLowerCase() === rawTerm.toLowerCase()) {
+                    localTermHit = hits[0];
+                }
+            }
 
             try {
-                db.collection('analytics').doc('global').set(
-                    { total_visits: firebase.firestore.FieldValue.increment(1) },
-                    { merge: true }
-                ).catch(error => console.warn('Analytics update failed:', error));
+                let gRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURIComponent(rawTerm)}`);
+                if (myId !== searchCounter) return;
+                let gAr = '';
+                (await gRes.json())[0].forEach(t => gAr += t[0]);
 
-                const doc = await db.collection('lectures').doc(id).get();
-                const lecture = doc.exists ? doc.data() : null;
-                if (!lecture || !Array.isArray(lecture.questions) || lecture.questions.length === 0) return;
+                status.style.display = 'none';
+                res.style.display = 'block';
+                document.getElementById('mq-d-g').innerHTML = `<b style="color:var(--gold);">🌍 الترجمة:</b> <span class="mq-hl-term">${escapeHTML(rawTerm)}</span> ⟸ <b>${escapeHTML(gAr)}</b>`;
 
-                state.all = lecture.questions;
-                state.title = lecture.title || 'محاضرة';
-                state.id = id;
-                document.getElementById('lec-title-display').innerText = state.title;
-                homeView.style.display = 'none';
-                lectureView.style.display = 'block';
-            } catch (error) {
-                console.error('Unable to load lecture:', error);
+                const medBox = document.getElementById('mq-d-med');
+                if (localTermHit) {
+                    medBox.style.display = 'block';
+                    medBox.innerHTML = `<b style="color:var(--success);">🩺 ${escapeHTML(localTermHit.fullEn)} (${escapeHTML(localTermHit.fullAr)}):</b><br>${escapeHTML(localTermHit.definitionAr || localTermHit.definition)}`;
+                } else {
+                    medBox.style.display = 'none';
+                }
+            } catch (_) {
+                status.innerText = '❌ تعذر الاتصال بخدمة الترجمة.';
             }
         };
 
-        function nextS(c) { document.getElementById(`step-${c}`).classList.remove('active'); document.getElementById(`step-${c+1}`).classList.add('active'); }
-
-        function showPartsGrid() {
-            const p = [...new Set(state.all.map(q => q.p))];
-            const g = document.getElementById('parts-selection-grid'); g.innerHTML = '';
-            p.forEach(x => g.innerHTML += `<div class="config-btn" onclick="this.classList.toggle('selected')" data-p="${x}">${x}</div>`);
-            g.style.display = 'grid'; document.getElementById('p-next-wizard').style.display = 'block';
-        }
-
-        function setScope(t) {
-            if(t==='all') { state.active = [...state.all]; } 
-            else if(t==='errors') {
-                const savedErrors = JSON.parse(localStorage.getItem('mq_e') || '[]');
-                const errQTexts = savedErrors.map(e => e.q);
-                state.active = state.all.filter(q => errQTexts.includes(q.q));
-                if(state.active.length === 0) return alert("ممتاز! ليس لديك أخطاء مسجلة في هذه المحاضرة 🥳");
-            } else { 
-                const s = Array.from(document.querySelectorAll('.selected')).map(e => e.dataset.p); 
-                state.active = state.all.filter(q => s.includes(q.p)); 
-            }
-            document.getElementById('max-q-count').innerText = state.active.length;
-            document.getElementById('q-limit-input').max = state.active.length;
-            document.getElementById('q-limit-input').value = state.active.length;
-            nextS(1);
-        }
-
-        function applyLimit() { 
-            let val = parseInt(document.getElementById('q-limit-input').value);
-            if (isNaN(val) || val < 1) val = 1; if (val > state.active.length) val = state.active.length;
-            state.cfg.l = val; nextS(2); 
-        }
-
-        function setMode(m) { state.cfg.m = m; nextS(3); }
-
-        function startFinalQuiz(t) {
-            state.cfg.t = t; state.active = state.active.sort(() => Math.random() - 0.5).slice(0, state.cfg.l);
-            document.getElementById('setup-wizard').style.display = 'none';
-            if(t) startTimer(); renderQ();
-        }
-
-        function renderQ() {
-            const q = state.active[state.idx];
-            const card = document.createElement('div'); card.className = 'stack-card';
-            // تنسيق السؤال الجديد
-            card.innerHTML = `<div class="landmark-box"><span class="part-tag">${q.p}</span></div><div class="question-text">${q.q}</div><div id="opts-cont-${state.idx}"></div><div id="fb-cont-${state.idx}"></div>`;
-            document.getElementById('quiz-feed-area').appendChild(card);
-            
-            const grid = card.querySelector(`#opts-cont-${state.idx}`);
-            [...q.options].sort(() => Math.random() - 0.5).forEach((opt, i) => {
-                const d = document.createElement('div'); d.className = 'option'; d.innerHTML = `<b>${String.fromCharCode(65+i)}</b> ${opt}`;
-                d.onclick = () => handleAnswer(opt, q, d, state.idx); grid.appendChild(d);
-            });
-            card.scrollIntoView({behavior:'smooth'});
-        }
-
-        function handleAnswer(sel, qObj, element, idx) {
-            const grid = document.getElementById(`opts-cont-${idx}`);
-            qObj.userAnswer = sel; 
-
-            if (state.cfg.m === 'exam') {
-                Array.from(grid.children).forEach(c => c.classList.remove('selected-temp'));
-                element.classList.add('selected-temp');
-            } else {
-                if (grid.classList.contains('locked')) return; grid.classList.add('locked');
-                if (sel === qObj.a) { element.classList.add('correct'); } 
-                else { 
-                    element.classList.add('wrong');
-                    Array.from(grid.children).forEach(c => { if(c.innerText.includes(qObj.a)) c.classList.add('correct'); });
+        const onSelectText = () => {
+            setTimeout(() => {
+                const selObj = window.getSelection();
+                const text = selObj ? selObj.toString().trim() : '';
+                if (text.length >= 2 && text.length <= 240 && /[a-zA-Z]/.test(text)) {
+                    if (selObj.anchorNode?.parentElement?.closest('#mq-dict, input, textarea')) return;
+                    lookupTerm(text);
                 }
-                // تنسيق الشرح التفصيلي
-                if (qObj.d) { document.getElementById(`fb-cont-${idx}`).innerHTML += `<div class="explanation-box">💡 <b>الشرح التفصيلي:</b> ${qObj.d}</div>`; }
+            }, 60);
+        };
+        document.addEventListener('mouseup', onSelectText);
+        document.addEventListener('touchend', onSelectText);
+    }
+
+    function openContributionModal() {
+        document.getElementById('uq-result-area').style.display = 'none';
+        document.getElementById('uq-submit-btn').style.display = 'inline-flex';
+        document.getElementById('uq-submit-btn').disabled = false;
+        openModal('contribute');
+    }
+
+    async function submitStudentContribution() {
+        const name = document.getElementById('uq-name').value.trim();
+        const year = document.getElementById('uq-year').value;
+        const mod = document.getElementById('uq-module').value.trim();
+        const qs = document.getElementById('uq-qs').value.trim();
+        const ans = document.getElementById('uq-ans').value.trim();
+
+        if (!name || !mod || !qs || !ans) {
+            return showMedAlert("⚠️ يرجى إكمال جميع الخانات (الاسم، الموديول، الأسئلة، والإجابات).");
+        }
+
+        const btn = document.getElementById('uq-submit-btn');
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري الإرسال...';
+
+        const uniqueId = 'userquestions' + Math.random().toString(36).substring(2, 7);
+        const generatedLink = new URL('?id=' + uniqueId, window.location.href).href;
+
+        try {
+            await db.collection('user_contributions').add({
+                contributorName: name,
+                year,
+                module: mod,
+                questionsText: qs,
+                answersText: ans,
+                assignedLink: generatedLink,
+                lectureId: uniqueId,
+                status: 'pending',
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            btn.style.display = 'none';
+            document.getElementById('uq-result-area').style.display = 'block';
+            document.getElementById('uq-link-display').value = generatedLink;
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerText = '🚀 إرسال الأسئلة للاعتماد';
+            showMedAlert("تعذر إرسال المساهمة حالياً.");
+        }
+    }
+
+    function renderPendingContributionView() {
+        const sub = document.getElementById('sub-engine-view');
+        sub.style.display = 'block';
+        sub.innerHTML = `
+            <div class="quiz-card" style="text-align:center; padding:36px 18px;">
+                <div style="font-size:3.2rem; margin-bottom:10px;">⏳</div>
+                <h2 style="color:var(--gold); margin-top:0;">الأسئلة قيد المراجعة العلمية</h2>
+                <p style="color:var(--text-muted); max-width:460px; margin:10px auto 18px auto;">
+                    سيتم تفعيل هذا الاختبار تلقائياً فور مراجعته واعتماده من إدارة MEDCORE.<br>
+                    <b style="color:var(--success);">شكراً لمساهمتك في إثراء المحتوى لزملائك 💙</b>
+                </p>
+                <button type="button" class="btn-nav btn-gold" onclick="window.location.href='index.html'">🏠 العودة للصفحة الرئيسية</button>
+            </div>
+        `;
+    }
+
+    function openModal(t) {
+        const el = document.getElementById(`modal-${t}`);
+        if (el) el.style.display = 'flex';
+        if (t === 'score') loadHistoryUI();
+        if (t === 'errors') loadErrorsUI();
+    }
+
+    function closeModal(t) {
+        const el = document.getElementById(`modal-${t}`);
+        if (el) el.style.display = 'none';
+    }
+
+    async function sendComplaint() {
+        const m = document.getElementById('comp-msg-box').value.trim();
+        if (!m) return showMedAlert('يرجى كتابة رسالتك أولاً يا دكتور');
+        try {
+            await db.collection('complaints').add({
+                type: 'general',
+                text: m,
+                issueDescription: m,
+                lec: state.title || state.id || 'الرئيسية',
+                lectureId: state.id || 'general',
+                questionText: 'رسالة / اقتراح عام',
+                time: firebase.firestore.FieldValue.serverTimestamp(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'new'
+            });
+            showToast('تم إرسال رسالتك للإدارة بنجاح ✅');
+            document.getElementById('comp-msg-box').value = '';
+            closeModal('comp');
+        } catch (e) {
+            showMedAlert('حدث خطأ أثناء الإرسال.');
+        }
+    }
+
+    function copyCurrentLink() {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            showToast("✅ تم نسخ رابط المحاضرة بنجاح!");
+        });
+    }
+
+    function shareScoreForCompetition() {
+        const total = Math.max(1, state.cfg.l || state.active.length);
+        const pct = Math.round((state.score / total) * 100);
+        const txt = `أنهيت اختبار "${state.title}" بنسبة ${pct}% 🎯\nعلى منصة MEDCORE 🩺\nهل يمكنك تحطيم رقمي؟\n${window.location.href}`;
+        if (navigator.share) navigator.share({ title: 'تحدي MEDCORE', text: txt }).catch(() => {});
+        else {
+            navigator.clipboard.writeText(txt);
+            showToast("تم نسخ رسالة التحدي لمشاركتها مع زملائك 🚀");
+        }
+    }
+
+    function initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+                toggleSidebar(false);
+                closeDictSheet();
             }
-            showNextButton(idx);
-        }
-
-        function showNextButton(idx) {
-            if(document.getElementById(`next-btn-act-${idx}`)) return;
-            const b = document.createElement('button'); b.id = `next-btn-act-${idx}`; b.className = 'btn-nav btn-blue'; b.style.marginTop = '20px'; b.innerText = "السؤال التالي ➡️";
-            b.onclick = () => { b.style.display = 'none'; if(state.idx < state.cfg.l - 1) { state.idx++; renderQ(); } else { finalize(); } };
-            document.getElementById(`fb-cont-${idx}`).appendChild(b);
-        }
-
-        function finalize() {
-            clearInterval(state.timer); document.getElementById('quiz-feed-area').style.display = 'none'; document.getElementById('global-timer').style.display = 'none'; document.getElementById('result-view').style.display = 'block';
-            
-            state.score = 0; state.parts = {};
-            state.active.forEach(q => {
-                if(!state.parts[q.p]) state.parts[q.p] = {c:0, t:0};
-                state.parts[q.p].t++;
-                if(q.userAnswer === q.a) { state.score++; state.parts[q.p].c++; } 
-                else if (q.userAnswer) { saveToErrors(q); } 
-            });
-
-            const pct = Math.round((state.score / state.cfg.l) * 100);
-            document.getElementById('final-pct-display').innerText = pct + '%'; document.getElementById('final-raw-score').innerText = `${state.score} / ${state.cfg.l}`;
-            
-            // العبارات الكاملة
-            let phrase = "";
-            if (pct >= 85) { phrase = "أداء استثنائي يا دكتور! تستحق وسام التميز الطبي 🥇🏆"; confetti({particleCount:200, spread:80, origin:{y:0.6}}); }
-            else if (pct >= 75) phrase = "جيد جداً! مجهود محترم ولكن يمكنك الوصول للقمة 💪";
-            else if (pct >= 60) phrase = "مقبول، ولكن هذا الجزء يحتاج لمراجعة أعمق لتثبيت المعلومة 📚";
-            else phrase = "لا تيأس! راجع أخطائك بتركيز وحاول مرة أخرى، أنت قادر على تجاوزها 🩺";
-            
-            let phEl = document.getElementById('final-phrase'); phEl.innerText = phrase; phEl.style.color = (pct < 60) ? "var(--error)" : "var(--success)";
-            
-            const revList = document.getElementById('rev-parts-list'); revList.innerHTML = ''; let needsRev = false;
-            for(let p in state.parts) { let pPct = (state.parts[p].c / state.parts[p].t) * 100; if(pPct < 60) { needsRev = true; revList.innerHTML += `<li>${p} (${Math.round(pPct)}%)</li>`; } }
-            document.getElementById('revision-alert').style.display = needsRev ? 'block' : 'none';
-            
-            // המراجعة التفصيلية للاختبار
-            let reviewHTML = '<h3 style="margin-top:35px; border-bottom:2px solid var(--border); padding-bottom:10px; color:var(--text);">📋 المراجعة التفصيلية للاختبار:</h3>';
-            state.active.forEach((q, i) => {
-                let isCorrect = q.userAnswer === q.a;
-                let color = isCorrect ? 'var(--success)' : 'var(--error)';
-                reviewHTML += `
-                <div style="background:var(--bg); padding:20px; border-radius:18px; margin-bottom:15px; text-align:right; border-right: 6px solid ${color};">
-                    <p style="font-weight:900; margin-top:0; color:var(--text); font-size:1.1rem;">${i+1}. ${q.q}</p>
-                    <p style="margin:8px 0; font-size:1rem;">إجابتك: <span style="color:${color}; font-weight:bold;">${q.userAnswer || 'لم يُجب'}</span></p>
-                    ${!isCorrect ? `<p style="margin:8px 0; font-size:1rem;">الإجابة الصحيحة: <span style="color:var(--success); font-weight:bold;">${q.a}</span></p>` : ''}
-                    ${q.d ? `<div class="explanation-box" style="margin-top:15px;">💡 <b>الشرح التفصيلي:</b> ${q.d}</div>` : ''}
-                </div>`;
-            });
-            document.getElementById('exam-review-list').innerHTML = reviewHTML;
-
-            saveHistory(pct);
-            db.collection('lectures').doc(state.id).update({ views: firebase.firestore.FieldValue.increment(1), subs: firebase.firestore.FieldValue.increment(1), avg_score: firebase.firestore.FieldValue.increment(pct) });
-        }
-
-        function startTimer() { let s = state.cfg.l * 45; document.getElementById('global-timer').style.display = 'block'; state.timer = setInterval(() => { s--; let m = Math.floor(s/60), sec = s%60; document.getElementById('global-timer').innerText = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; if(s <= 0) { clearInterval(state.timer); finalize(); } }, 1000); }
-        function toggleTheme() { document.body.classList.toggle('dark-theme'); document.getElementById('t-icon').innerText = document.body.classList.contains('dark-theme') ? '🌙' : '☀️'; }
-        function openModal(t) { document.getElementById(`modal-${t}`).style.display = 'flex'; if(t==='score') loadHistoryUI(); if(t==='errors') loadErrorsUI(); }
-        function closeModal(t) { document.getElementById(`modal-${t}`).style.display = 'none'; }
-        
-        function saveToErrors(q) { let e = JSON.parse(localStorage.getItem('mq_e') || '[]'); if(!e.find(x=>x.q===q.q)) e.push(q); localStorage.setItem('mq_e', JSON.stringify(e)); }
-        function saveHistory(p) { let h = JSON.parse(localStorage.getItem('mq_h') || '[]'); h.push({t:state.title, s:p, d:new Date().toLocaleDateString()}); localStorage.setItem('mq_h', JSON.stringify(h)); }
-        
-        function loadHistoryUI() { const h = JSON.parse(localStorage.getItem('mq_h') || '[]'); document.getElementById('history-content-list').innerHTML = h.length === 0 ? "<p>لا يوجد سجل اختبارات حتى الآن.</p>" : h.map(x=>`<div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid var(--border); font-size:1.1rem; font-weight:bold;"><span>${x.t}</span><b style="color:var(--primary);">${x.s}%</b></div>`).join(''); }
-        function loadErrorsUI() { const e = JSON.parse(localStorage.getItem('mq_e') || '[]'); document.getElementById('errors-content-list').innerHTML = e.length === 0 ? "<p>ليس لديك أخطاء مسجلة، استمر في تفوقك!</p>" : e.map(x=>`<div style="background:var(--bg); padding:18px; border-radius:15px; margin-bottom:12px;"><b style="font-size:1.1rem;">${x.q}</b><br><small style="color:var(--success); font-weight:bold; font-size:1rem; display:block; margin-top:8px;">الصح: ${x.a}</small></div>`).join(''); }
-        
-        async function sendComplaint() { const m = document.getElementById('comp-msg-box').value; if(!m) return alert('يرجى كتابة الشكوى أولاً'); await db.collection('complaints').add({text:m, lec:state.title || 'الرئيسية', time:firebase.firestore.FieldValue.serverTimestamp()}); alert('تم الإرسال!'); document.getElementById('comp-msg-box').value = ''; closeModal('comp'); }
+            const currentCard = document.getElementById(`q-card-box-${state.idx}`);
+            if (!currentCard) return;
+            const opts = currentCard.querySelectorAll('.option:not(.locked-opt)');
+            if (['1', '2', '3', '4'].includes(e.key)) {
+                const idx = parseInt(e.key, 10) - 1;
+                if (opts[idx]) opts[idx].click();
+            } else if (e.key === 'Enter') {
+                const nextBtn = document.getElementById(`next-btn-act-${state.idx}`);
+                if (nextBtn && nextBtn.style.display !== 'none') nextBtn.click();
+            }
+        });
+    }
     </script>
 </body>
 </html>
-

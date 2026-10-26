@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDCORE Hub 🩺 | الأدوات الطبية وساحة التحدي</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- مكتبات Firebase الرسمية -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" crossorigin="anonymous"></script>
+    <!-- قواعد بيانات القيم المعملية (589 تحليلاً) والحاسبات الطبية (37 حاسبة) والمصطلحات -->
+    <script src="medcore-labs.js"></script>
+    <script src="medcore-tools.js"></script>
+    <style>
+        body { padding-bottom: 30px; }
+        .hub-tabs-bar {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 10px 12px;
+            background: var(--surface-glass);
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+        .hub-tab-btn {
+            background: var(--surface-elevated);
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            font-weight: 800;
+            font-size: 0.84rem;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.18s ease;
+        }
+        .hub-tab-btn.active {
+            background: var(--maroon);
+            color: #ffffff;
+            border-color: var(--gold);
+        }
+        .cat-pills-strip {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 6px 2px 10px 2px;
+            margin-bottom: 10px;
+        }
+        .cat-pill-btn {
+            background: var(--surface-elevated);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.15s;
+        }
+        .cat-pill-btn.active {
+            background: var(--gold);
+            color: #0b1322;
+            border-color: var(--gold);
+        }
+        .lab-item-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-right: 4px solid var(--primary);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+        .lab-range-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: var(--surface-elevated);
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .lab-range-row.crit-low, .lab-range-row.crit-high {
+            background: var(--error-light);
+            border: 1px solid var(--error);
+            color: var(--error);
+            font-weight: 900;
+        }
+        .calc-grid-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+        .calc-list-sidebar {
+            max-height: 70vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-inline-end: 4px;
+        }
+        .calc-item-btn {
+            width: 100%;
+            text-align: start;
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--surface-elevated);
+            color: var(--text);
+            font-weight: 800;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .calc-item-btn.active {
+            border-color: var(--gold);
+            background: rgba(197, 160, 89, 0.22);
+            color: var(--gold-bright);
+        }
+        body.light-theme .calc-item-btn.active {
+            color: var(--maroon);
+        }
+        .mnemonic-chips-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 8px 0 12px 0;
+        }
+        @media (max-width: 720px) {
+            .calc-grid-layout {
+                grid-template-columns: 1fr;
+            }
+            .calc-list-sidebar {
+                max-height: 195px;
+                border-bottom: 2px solid var(--border);
+                padding-bottom: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شريط التبويبات العلوي لبوابة الأدوات -->
+    <header class="hub-tabs-bar">
+        <button type="button" class="hub-tab-btn" id="tab-btn-labs" onclick="switchHubTab('labs')">
+            🧪 <span data-i18n="labsBtn">القيم المعملية</span> (589)
+        </button>
+        <button type="button" class="hub-tab-btn" id="tab-btn-calc" onclick="switchHubTab('calc')">
+            🧮 <span data-i18n="calcBtn">الحاسبات الطبية</span> (37)
+        </button>
+        <button type="button" class="hub-tab-btn" id="tab-btn-mnemonic" onclick="switchHubTab('mnemonic')">
+            🧠 <span data-i18n="mnemonicBtn">مختصرات الحفظ</span>
+        </button>
+        <button type="button" class="hub-tab-btn" id="tab-btn-terms" onclick="switchHubTab('terms')">
+            📖 <span data-i18n="termsBtn">المصطلحات</span>
+        </button>
+        <button type="button" class="hub-tab-btn" id="tab-btn-arena" onclick="switchHubTab('arena')">
+            ⚔️ <span data-i18n="arenaTab">ساحة التحدي</span>
+        </button>
+        <div style="margin-inline-start:auto; display:flex; gap:6px;">
+            <button type="button" class="hub-tab-btn" onclick="toggleHubLanguage()" id="hub-lang-btn">🌐 EN</button>
+        </div>
+    </header>
+
+    <main class="container" style="max-width:1020px; margin-top:12px;">
+
+        <!-- =====================================================================
+             القسم 1: موسوعة القيم المعملية الشاملة (589 تحليلاً و 35 قسماً)
+             ===================================================================== -->
+        <section id="hub-sec-labs" class="hub-section" style="display:none;">
+            <div class="quiz-card" style="padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                    <h2 style="margin:0; font-size:1.15rem; color:var(--gold);" id="labs-main-heading">🧪 موسوعة القيم المعملية المرجعية (589 تحليلاً)</h2>
+                    <span id="labs-count-badge" class="status-pill">589</span>
+                </div>
+
+                <input type="search" id="labs-search-input" placeholder="ابحث باسم التحليل بالعربية أو الإنجليزية أو الاختصار (مثال: Hb, Na, Troponin, TSH, CSF)..." oninput="renderLabsDirectory()" style="width:100%; padding:11px 14px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); font-weight:700; margin-bottom:8px;">
+
+                <!-- شريط الـ 35 قسماً -->
+                <div class="cat-pills-strip" id="labs-categories-bar"></div>
+
+                <!-- قائمة البطاقات -->
+                <div id="labs-results-container" style="max-height:66vh; overflow-y:auto; padding-inline-end:4px;"></div>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             القسم 2: الحاسبات الطبية السريرية الشاملة (37 حاسبة تفاعلية)
+             ===================================================================== -->
+        <section id="hub-sec-calc" class="hub-section" style="display:none;">
+            <div class="quiz-card" style="padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                    <h2 style="margin:0; font-size:1.15rem; color:var(--gold);" id="calc-main-heading">🧮 الحاسبات الطبية السريرية (37 حاسبة)</h2>
+                    <input type="search" id="calc-filter-inp" placeholder="ابحث عن حاسبة (GFR, BMI, Wells, MELD, GCS)..." oninput="renderCalculatorsSidebar()" style="width:260px; max-width:100%; padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-elevated); color:var(--text); font-size:0.84rem;">
+                </div>
+
+                <div class="calc-grid-layout">
+                    <div class="calc-list-sidebar" id="calc-sidebar-list"></div>
+                    <div class="static-section-box" id="calc-active-workspace" style="margin:0; min-height:320px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             القسم 3: صانع المختصرات الطبية الذكي (MedMnemonic AI)
+             ===================================================================== -->
+        <section id="hub-sec-mnemonic" class="hub-section" style="display:none;">
+            <div class="quiz-card">
+                <h2 style="margin-top:0; color:var(--gold); font-size:1.2rem;" id="mnem-heading">🧠 MedMnemonic AI</h2>
+                <p style="font-size:0.86rem; color:var(--text-muted); margin:0 0 10px 0;" id="mnem-sub">حوّل أي قائمة طبية إلى مختصر ذكي لا يُنسى في الامتحان:</p>
+
+                <div style="font-size:0.82rem; font-weight:800; color:var(--gold); margin-bottom:6px;" id="mnem-ex-label">أمثلة جاهزة:</div>
+                <div class="mnemonic-chips-wrap">
+                    <button type="button" class="btn-chip" onclick="selectPresetMnemonic('Cranial Nerves')">Cranial Nerves</button>
+                    <button type="button" class="btn-chip" onclick="selectPresetMnemonic('MUDPILES')">MUDPILES</button>
+                    <button type="button" class="btn-chip" onclick="selectPresetMnemonic('CURB-65')">CURB-65</button>
+                    <button type="button" class="btn-chip" onclick="selectPresetMnemonic('Child-Pugh')">Child-Pugh</button>
+                    <button type="button" class="btn-chip" onclick="selectPresetMnemonic('Hypokalemia')">Hypokalemia</button>
+                </div>
+
+                <textarea id="mnem-input-box" rows="3" placeholder="اكتب القائمة الطبية أو أسباب المرض هنا (مثال: Causes of Acute Pancreatitis)..." style="width:100%; padding:11px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1.5px solid var(--border); margin-bottom:10px; font-weight:700;"></textarea>
+
+                <div style="display:flex; gap:8px;">
+                    <button type="button" id="btn-run-mnemonic" class="btn-nav btn-gold" style="flex:1;" onclick="generateHubMnemonic()">
+                        ✨ <span id="mnem-gen-btn-txt">إنشاء Mnemonic</span>
+                    </button>
+                    <button type="button" class="btn-nav btn-outline" onclick="clearMnemonicBox()">
+                        🗑️ <span id="mnem-clear-btn-txt">مسح</span>
+                    </button>
+                </div>
+
+                <div id="mnem-result-wrapper" style="display:none; margin-top:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <b style="color:var(--gold); font-size:0.9rem;" id="mnem-res-label">🎯 المختصر المولَّد:</b>
+                        <div style="display:flex; gap:6px;">
+                            <button type="button" class="btn-chip" onclick="copyMnemonicResult()">📋 <span data-i18n="copy">نسخ</span></button>
+                            <button type="button" class="btn-chip" onclick="generateHubMnemonic(true)">🔄 <span data-i18n="reset">إعادة</span></button>
+                        </div>
+                    </div>
+                    <div id="mnem-output-text" class="explanation-box" style="margin-top:0; white-space:pre-wrap;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             القسم 4: قاموس المصطلحات والبادئات الطبية (MQ_MED_TERMS)
+             ===================================================================== -->
+        <section id="hub-sec-terms" class="hub-section" style="display:none;">
+            <div class="quiz-card">
+                <h2 style="margin-top:0; color:var(--gold); font-size:1.15rem;" id="terms-heading">📖 قاموس المصطلحات والاختصارات الطبية</h2>
+                <input type="search" id="terms-search-inp" placeholder="ابحث عن اختصار أو بادئة طبية (مثال: STEMI, DKA, ARDS, tachy-, -itis, -ectomy)..." oninput="renderMedTermsList()" style="width:100%; padding:11px 14px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); font-weight:700; margin-bottom:12px;">
+                <div id="terms-results-box" style="max-height:66vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             القسم 5: ساحة التحدي المباشر (مقفولة على المحاضرة المفتوحة + بحد أقصى 4 لاعبين)
+             ===================================================================== -->
+        <section id="hub-sec-arena" class="hub-section" style="display:none;">
+            <div id="arena-container-box"></div>
+        </section>
+
+    </main>
+
+    <script>
+    /* ==========================================================================
+       MEDCORE Hub Engine (new.html — Labs, 37 Calculators, Mnemonic AI & Arena)
+       ========================================================================== */
+    const firebaseConfig = {
+        apiKey: "AIzaSyAElUTnaXitLw35Hb55kQWoe1AdbGO1t8A",
+        authDomain: "medquiz2026.firebaseapp.com",
+        databaseURL: "https://medquiz2026-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "medquiz2026",
+        storageBucket: "medquiz2026.firebasestorage.app",
+        messagingSenderId: "840399052520",
+        appId: "1:840399052520:web:1181e6fcd93696b679335d"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const rtdb = firebase.database();
+
+    // رابط السيرفر الرسمي الخاص بك
+    const AI_WORKER_ENDPOINT = "https://medcore-ai-proxy.ma7moud01030382018.workers.dev/";
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let activeTab = urlParams.get('tab') || 'labs';
+    let lockedLectureId = (urlParams.get('lecId') || '').trim();
+    let lockedLectureTitle = (urlParams.get('lecTitle') || '').trim();
+    let initialArenaRoom = (urlParams.get('room') || '').trim();
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getLang() {
+        return localStorage.getItem('mq_lang') || urlParams.get('lang') || 'ar';
+    }
+
+    function applyHubThemeAndLang() {
+        const theme = localStorage.getItem('mq-theme-v13') || urlParams.get('theme') || 'dark';
+        if (theme === 'light') document.body.classList.add('light-theme');
+        else document.body.classList.remove('light-theme');
+
+        const lang = getLang();
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.body.style.direction = lang === 'ar' ? 'rtl' : 'ltr';
+        document.body.style.textAlign = lang === 'ar' ? 'right' : 'left';
+
+        const langBtn = document.getElementById('hub-lang-btn');
+        if (langBtn) langBtn.innerText = lang === 'ar' ? '🌐 EN' : '🌐 عربي';
+
+        const isEn = lang === 'en';
+        document.querySelector('[data-i18n="labsBtn"]').innerText = isEn ? 'Lab Values' : 'القيم المعملية';
+        document.querySelector('[data-i18n="calcBtn"]').innerText = isEn ? 'Calculators' : 'الحاسبات الطبية';
+        document.querySelector('[data-i18n="mnemonicBtn"]').innerText = isEn ? 'Mnemonics' : 'مختصرات الحفظ';
+        document.querySelector('[data-i18n="termsBtn"]').innerText = isEn ? 'Med Terms' : 'المصطلحات';
+        document.querySelector('[data-i18n="arenaTab"]').innerText = isEn ? 'Live Arena' : 'ساحة التحدي';
+
+        document.getElementById('labs-main-heading').innerText = isEn
+            ? `🧪 Clinical Lab Values Reference (${typeof MQ_LABS !== 'undefined' ? MQ_LABS.length : 589} Tests)`
+            : `🧪 موسوعة القيم المعملية المرجعية (${typeof MQ_LABS !== 'undefined' ? MQ_LABS.length : 589} تحليلاً)`;
+        document.getElementById('labs-search-input').placeholder = isEn
+            ? 'Search by test name, abbreviation, or condition (e.g. Hb, Na, Troponin, TSH, CSF)...'
+            : 'ابحث باسم التحليل بالعربية أو الإنجليزية أو الاختصار (مثال: Hb, Na, Troponin, TSH, CSF)...';
+
+        document.getElementById('calc-main-heading').innerText = isEn
+            ? '🧮 Clinical Medical Calculators (37 Tools)'
+            : '🧮 الحاسبات الطبية السريرية (37 حاسبة)';
+        document.getElementById('calc-filter-inp').placeholder = isEn
+            ? 'Search calculator (GFR, BMI, Wells, MELD, GCS)...'
+            : 'ابحث عن حاسبة (GFR, BMI, Wells, MELD, GCS)...';
+
+        document.getElementById('mnem-sub').innerText = isEn
+            ? 'Turn any medical list or differential into an unforgettable exam mnemonic:'
+            : 'حوّل أي قائمة طبية إلى مختصر ذكي لا يُنسى في الامتحان:';
+        document.getElementById('mnem-ex-label').innerText = isEn ? 'Ready Examples:' : 'أمثلة جاهزة:';
+        document.getElementById('mnem-input-box').placeholder = isEn
+            ? 'Enter medical list or topic here (e.g. Causes of Acute Pancreatitis)...'
+            : 'اكتب القائمة الطبية أو أسباب المرض هنا...';
+        document.getElementById('mnem-gen-btn-txt').innerText = isEn ? 'Generate Mnemonic' : 'إنشاء Mnemonic';
+        document.getElementById('mnem-clear-btn-txt').innerText = isEn ? 'Clear' : 'مسح';
+        document.getElementById('mnem-res-label').innerText = isEn ? '🎯 Generated Mnemonic:' : '🎯 المختصر المولَّد:';
+        document.getElementById('terms-heading').innerText = isEn
+            ? '📖 Medical Terminology & Abbreviations Dictionary'
+            : '📖 قاموس المصطلحات والاختصارات الطبية';
+
+        renderLabsCategoriesBar();
+        renderLabsDirectory();
+        renderCalculatorsSidebar();
+        renderActiveCalculatorForm();
+        renderMedTermsList();
+    }
+
+    function toggleHubLanguage() {
+        const nextLang = getLang() === 'ar' ? 'en' : 'ar';
+        localStorage.setItem('mq_lang', nextLang);
+        if (typeof window.mqSetLang === 'function') window.mqSetLang(nextLang);
+        applyHubThemeAndLang();
+    }
+
+    window.addEventListener('message', (e) => {
+        if (!e.data) return;
+        if (e.data.type === 'MQ_SET_LANG') {
+            localStorage.setItem('mq_lang', e.data.lang);
+            applyHubThemeAndLang();
+        } else if (e.data.type === 'MQ_SET_THEME') {
+            if (e.data.theme === 'light') document.body.classList.add('light-theme');
+            else document.body.classList.remove('light-theme');
+        }
+    });
+
+    function switchHubTab(tab) {
+        activeTab = tab;
+        document.querySelectorAll('.hub-section').forEach(s => s.style.display = 'none');
+        document.querySelectorAll('.hub-tab-btn').forEach(b => b.classList.remove('active'));
+
+        const sec = document.getElementById(`hub-sec-${tab}`);
+        const btn = document.getElementById(`tab-btn-${tab}`);
+        if (sec) sec.style.display = 'block';
+        if (btn) btn.classList.add('active');
+
+        if (tab === 'arena') initArenaModule();
+    }
+
+    // ==========================================================================
+    // 1. محرك موسوعة القيم المعملية الشاملة (589 تحليلاً و 35 قسماً من medcore-labs.js)
+    // ==========================================================================
+    let selectedLabCat = 'all';
+
+    function renderLabsCategoriesBar() {
+        const bar = document.getElementById('labs-categories-bar');
+        if (!bar || typeof MQ_LAB_CATEGORIES_META === 'undefined') return;
+        const isEn = getLang() === 'en';
+
+        let html = `<button type="button" class="cat-pill-btn ${selectedLabCat === 'all' ? 'active' : ''}" onclick="selectLabCategory('all')">${isEn ? 'All Categories (35)' : 'جميع الأقسام (35)'}</button>`;
+        Object.keys(MQ_LAB_CATEGORIES_META).forEach(catKey => {
+            const c = MQ_LAB_CATEGORIES_META[catKey];
+            const label = isEn ? c.name : c.nameAr;
+            html += `<button type="button" class="cat-pill-btn ${selectedLabCat === catKey ? 'active' : ''}" onclick="selectLabCategory('${catKey}')">${escapeHTML(label)}</button>`;
+        });
+        bar.innerHTML = html;
+    }
+
+    function selectLabCategory(catKey) {
+        selectedLabCat = catKey;
+        renderLabsCategoriesBar();
+        renderLabsDirectory();
+    }
+
+    function renderLabsDirectory() {
+        const cont = document.getElementById('labs-results-container');
+        if (!cont || typeof MQ_LABS === 'undefined') return;
+
+        const isEn = getLang() === 'en';
+        const q = (document.getElementById('labs-search-input')?.value || '').trim().toLowerCase();
+
+        const filtered = MQ_LABS.filter(item => {
+            if (selectedLabCat !== 'all' && item.category !== selectedLabCat) return false;
+            if (!q) return true;
+            const inName = (item.name || '').toLowerCase().includes(q) || (item.nameAr || '').includes(q);
+            const inAlias = Array.isArray(item.aliases) && item.aliases.some(a => a.toLowerCase().includes(q));
+            const inTags = Array.isArray(item.tags) && item.tags.some(t => t.toLowerCase().includes(q));
+            const inSig = (item.significance || '').toLowerCase().includes(q) || (item.significanceAr || '').includes(q);
+            return inName || inAlias || inTags || inSig;
+        });
+
+        const badge = document.getElementById('labs-count-badge');
+        if (badge) badge.innerText = isEn ? `${filtered.length} Tests` : `${filtered.length} تحليل`;
+
+        const slice = filtered.slice(0, 80);
+        if (slice.length === 0) {
+            cont.innerHTML = `<p style="text-align:center; padding:24px; color:var(--text-muted);">${isEn ? 'No matching lab tests found.' : 'لا توجد تحاليل مطابقة للبحث.'}</p>`;
+            return;
+        }
+
+        cont.innerHTML = slice.map(item => {
+            const catMeta = (typeof MQ_LAB_CATEGORIES_META !== 'undefined' && MQ_LAB_CATEGORIES_META[item.category]) || {};
+            const catTitle = isEn ? (catMeta.name || item.category) : (catMeta.nameAr || item.category);
+            const primaryTitle = isEn ? item.name : `${item.nameAr} — ${item.name}`;
+            const aliasesStr = Array.isArray(item.aliases) && item.aliases.length > 0 ? item.aliases.join(', ') : '';
+            const sigText = isEn ? (item.significance || item.significanceAr) : (item.significanceAr || item.significance);
+
+            const rangesHtml = (item.ranges || []).map(r => {
+                const isCritLow = r.alert === 'critical_low';
+                const isCritHigh = r.alert === 'critical_high';
+                const rowClass = isCritLow ? 'crit-low' : isCritHigh ? 'crit-high' : '';
+                return `
+                    <div class="lab-range-row ${rowClass}">
+                        <span style="font-weight:800;" dir="ltr">${escapeHTML(r.group)}</span>
+                        <span style="color:var(--gold-bright); font-weight:900; font-family:monospace;" dir="ltr">${escapeHTML(r.value)} ${escapeHTML(r.unit || '')}</span>
+                        ${r.note ? `<small style="width:100%; color:var(--text-muted); font-size:0.76rem;" dir="ltr">ℹ️ ${escapeHTML(r.note)}</small>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <article class="lab-item-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                        <div>
+                            <h3 style="margin:0; font-size:1rem; color:var(--gold);">${escapeHTML(primaryTitle)}</h3>
+                            ${aliasesStr ? `<small style="color:var(--text-muted); font-family:monospace;" dir="ltr">Aliases: ${escapeHTML(aliasesStr)}</small>` : ''}
+                        </div>
+                        <span class="status-pill">${escapeHTML(catTitle)}</span>
+                    </div>
+                    <div>${rangesHtml}</div>
+                    ${sigText ? `<div class="explanation-box" style="margin-top:8px; padding:10px; font-size:0.85rem;">🩺 <b>${isEn ? 'Clinical Significance:' : 'الأهمية السريرية:'}</b> ${escapeHTML(sigText)}</div>` : ''}
+                </article>
+            `;
+        }).join('');
+    }
+
+    // ==========================================================================
+    // 2. محرك الحاسبات الطبية السريرية الشامل (37 حاسبة من medcore-tools.js)
+    // ==========================================================================
+    const CALCULATORS_CATALOG = [
+        { id: 'bmi', labelKey: 'calcBmi', fields: [{ id: 'w', labelAr: 'الوزن (كجم)', labelEn: 'Weight (kg)', type: 'number', val: 75 }, { id: 'h', labelAr: 'الطول (سم)', labelEn: 'Height (cm)', type: 'number', val: 175 }], run: (v) => mqBmi(v.w, v.h) },
+        { id: 'cg', labelKey: 'calcGfr', nameAr: 'تصفية الكرياتينين (Cockcroft-Gault)', nameEn: 'Cockcroft-Gault CrCl', fields: [{ id: 'age', labelAr: 'العمر (سنة)', labelEn: 'Age (years)', type: 'number', val: 50 }, { id: 'w', labelAr: 'الوزن (كجم)', labelEn: 'Weight (kg)', type: 'number', val: 75 }, { id: 'cr', labelAr: 'الكرياتينين (mg/dL)', labelEn: 'Serum Cr (mg/dL)', type: 'number', val: 1.2 }, { id: 'sex', labelAr: 'الجنس', labelEn: 'Sex', type: 'select', opts: [{ v: 'male', ar: 'ذكر', en: 'Male' }, { v: 'female', ar: 'أنثى', en: 'Female' }] }], run: (v) => mqCockcroftGault(v.age, v.w, v.cr, v.sex) },
+        { id: 'ckdepi', labelKey: 'calcGfr', nameAr: 'معدل الترشيح الكبيبي (CKD-EPI 2021)', nameEn: 'CKD-EPI 2021 eGFR', fields: [{ id: 'cr', labelAr: 'الكرياتينين (mg/dL)', labelEn: 'Serum Cr (mg/dL)', type: 'number', val: 1.1 }, { id: 'age', labelAr: 'العمر (سنة)', labelEn: 'Age (years)', type: 'number', val: 45 }, { id: 'sex', labelAr: 'الجنس', labelEn: 'Sex', type: 'select', opts: [{ v: 'male', ar: 'ذكر', en: 'Male' }, { v: 'female', ar: 'أنثى', en: 'Female' }] }], run: (v) => mqCkdEpi2021(v.cr, v.age, v.sex) },
+        { id: 'ca', labelKey: 'calcCa', fields: [{ id: 'ca', labelAr: 'الكالسيوم المقاس (mg/dL)', labelEn: 'Measured Ca (mg/dL)', type: 'number', val: 8.2 }, { id: 'alb', labelAr: 'الألبومين (g/dL)', labelEn: 'Serum Albumin (g/dL)', type: 'number', val: 2.8 }], run: (v) => mqCorrectedCalcium(v.ca, v.alb) },
+        { id: 'ag', labelKey: 'calcAg', fields: [{ id: 'na', labelAr: 'الصوديوم Na (mEq/L)', labelEn: 'Sodium Na (mEq/L)', type: 'number', val: 140 }, { id: 'cl', labelAr: 'الكلوريد Cl (mEq/L)', labelEn: 'Chloride Cl (mEq/L)', type: 'number', val: 102 }, { id: 'hco3', labelAr: 'البيكربونات HCO3 (mEq/L)', labelEn: 'HCO3 (mEq/L)', type: 'number', val: 18 }], run: (v) => mqAnionGap(v.na, v.cl, v.hco3) },
+        { id: 'delta', labelKey: 'calcDelta', fields: [{ id: 'ag', labelAr: 'الفجوة الأنيونية (AG)', labelEn: 'Anion Gap (AG)', type: 'number', val: 22 }, { id: 'hco3', labelAr: 'البيكربونات HCO3', labelEn: 'Serum HCO3', type: 'number', val: 14 }], run: (v) => mqDeltaDelta(v.ag, v.hco3) },
+        { id: 'corr_na', labelKey: 'calcNa', fields: [{ id: 'na', labelAr: 'الصوديوم المقاس (mEq/L)', labelEn: 'Measured Na (mEq/L)', type: 'number', val: 128 }, { id: 'glu', labelAr: 'سكر الدم (mg/dL)', labelEn: 'Blood Glucose (mg/dL)', type: 'number', val: 450 }], run: (v) => mqCorrectedSodium(v.na, v.glu) },
+        { id: 'osm', labelKey: 'calcOsm', fields: [{ id: 'na', labelAr: 'الصوديوم Na (mEq/L)', labelEn: 'Sodium Na', type: 'number', val: 140 }, { id: 'glu', labelAr: 'الجلوكوز (mg/dL)', labelEn: 'Glucose (mg/dL)', type: 'number', val: 100 }, { id: 'bun', labelAr: 'اليوريا BUN (mg/dL)', labelEn: 'BUN (mg/dL)', type: 'number', val: 14 }], run: (v) => mqSerumOsmolality(v.na, v.glu, v.bun) },
+        { id: 'osmgap', labelKey: 'calcOsmGap', fields: [{ id: 'm', labelAr: 'الأسمولية المقاسة (mOsm/kg)', labelEn: 'Measured Osmolality', type: 'number', val: 315 }, { id: 'c', labelAr: 'الأسمولية المحسوبة (mOsm/kg)', labelEn: 'Calculated Osmolality', type: 'number', val: 290 }], run: (v) => mqOsmolarGap(v.m, v.c) },
+        { id: 'fena', labelKey: 'calcFena', fields: [{ id: 'una', labelAr: 'صوديوم البول (mEq/L)', labelEn: 'Urine Na', type: 'number', val: 15 }, { id: 'pna', labelAr: 'صوديوم البلازما (mEq/L)', labelEn: 'Plasma Na', type: 'number', val: 140 }, { id: 'ucr', labelAr: 'كرياتينين البول (mg/dL)', labelEn: 'Urine Cr', type: 'number', val: 120 }, { id: 'pcr', labelAr: 'كرياتينين البلازما (mg/dL)', labelEn: 'Plasma Cr', type: 'number', val: 2.2 }], run: (v) => mqFena(v.una, v.pna, v.ucr, v.pcr) },
+        { id: 'meld', labelKey: 'calcMeld', fields: [{ id: 'bili', labelAr: 'البيليروبين (mg/dL)', labelEn: 'Total Bilirubin', type: 'number', val: 2.5 }, { id: 'inr', labelAr: 'INR', labelEn: 'INR', type: 'number', val: 1.8 }, { id: 'cr', labelAr: 'الكرياتينين (mg/dL)', labelEn: 'Serum Creatinine', type: 'number', val: 1.5 }, { id: 'dial', labelAr: 'غسيل كلوي مرتين بالأسبوع؟', labelEn: 'Dialysis twice in past week?', type: 'checkbox' }], run: (v) => mqMeld(v.bili, v.inr, v.cr, v.dial) },
+        { id: 'child', labelKey: 'calcChildPugh', fields: [
+            { id: 'enc', labelAr: 'الاعتلال الدماغي الكبدي', labelEn: 'Hepatic Encephalopathy', type: 'select', opts: [{ v: 1, ar: 'لا يوجد (1)', en: 'None (1)' }, { v: 2, ar: 'درجة 1-2 (2)', en: 'Grade 1-2 (2)' }, { v: 3, ar: 'درجة 3-4 (3)', en: 'Grade 3-4 (3)' }] },
+            { id: 'asc', labelAr: 'الاستسقاء (الحبن)', labelEn: 'Ascites', type: 'select', opts: [{ v: 1, ar: 'لا يوجد (1)', en: 'None (1)' }, { v: 2, ar: 'طفيف / مضبوط (2)', en: 'Mild/Controlled (2)' }, { v: 3, ar: 'متوسط إلى شديد (3)', en: 'Moderate/Severe (3)' }] },
+            { id: 'bili', labelAr: 'البيليروبين (mg/dL)', labelEn: 'Bilirubin', type: 'select', opts: [{ v: 1, ar: '< 2 mg/dL (1)', en: '< 2 mg/dL (1)' }, { v: 2, ar: '2 - 3 mg/dL (2)', en: '2 - 3 mg/dL (2)' }, { v: 3, ar: '> 3 mg/dL (3)', en: '> 3 mg/dL (3)' }] },
+            { id: 'alb', labelAr: 'الألبومين (g/dL)', labelEn: 'Albumin', type: 'select', opts: [{ v: 1, ar: '> 3.5 g/dL (1)', en: '> 3.5 g/dL (1)' }, { v: 2, ar: '2.8 - 3.5 g/dL (2)', en: '2.8 - 3.5 g/dL (2)' }, { v: 3, ar: '< 2.8 g/dL (3)', en: '< 2.8 g/dL (3)' }] },
+            { id: 'inr', labelAr: 'INR', labelEn: 'INR', type: 'select', opts: [{ v: 1, ar: '< 1.7 (1)', en: '< 1.7 (1)' }, { v: 2, ar: '1.7 - 2.3 (2)', en: '1.7 - 2.3 (2)' }, { v: 3, ar: '> 2.3 (3)', en: '> 2.3 (3)' }] }
+        ], run: (v) => mqChildPugh(v.enc, v.asc, v.bili, v.alb, v.inr) },
+        { id: 'wellsdvt', labelKey: 'calcWellsDvt', fields: [
+            { id: 'activeCancer', labelAr: 'سرطان نشط (+1)', labelEn: 'Active Cancer (+1)', type: 'checkbox' },
+            { id: 'paralysisParesisPlaster', labelAr: 'شلل أو جبيرة بالطرف السفلي (+1)', labelEn: 'Paralysis or Recent Plaster Cast (+1)', type: 'checkbox' },
+            { id: 'bedriddenOrSurgery', labelAr: 'طريح الفراش >3 أيام أو جراحة كبرى (+1)', labelEn: 'Bedridden >3d or Major Surgery <12wk (+1)', type: 'checkbox' },
+            { id: 'localizedTenderness', labelAr: 'إيلام موضعي على مسار الأوردة العميقة (+1)', labelEn: 'Localized Tenderness along Deep Veins (+1)', type: 'checkbox' },
+            { id: 'entireLegSwollen', labelAr: 'تورم الساق بالكامل (+1)', labelEn: 'Entire Leg Swollen (+1)', type: 'checkbox' },
+            { id: 'calfSwelling3cm', labelAr: 'تورم الربلة >3 سم مقارنة بالأخرى (+1)', labelEn: 'Calf Swelling >3cm vs Asymptomatic Side (+1)', type: 'checkbox' },
+            { id: 'pittingEdemaConfined', labelAr: 'وذمة انطباعية محصورة بالطرف العرضي (+1)', labelEn: 'Pitting Edema Confined to Symptomatic Leg (+1)', type: 'checkbox' },
+            { id: 'collateralSuperficialVeins', labelAr: 'أوردة سطحية جانبية غير دوالية (+1)', labelEn: 'Collateral Superficial Veins (+1)', type: 'checkbox' },
+            { id: 'priorDvt', labelAr: 'تاريخ سابق للإصابة بـ DVT (+1)', labelEn: 'Previously Documented DVT (+1)', type: 'checkbox' },
+            { id: 'alternativeDiagnosisLikely', labelAr: 'تشخيص بديل مرجح بدرجة مساوية أو أكبر (-2)', labelEn: 'Alternative Diagnosis as Likely (-2)', type: 'checkbox' }
+        ], run: (v) => mqWellsDvt(v) },
+        { id: 'wellspe', labelKey: 'calcWellsPe', fields: [
+            { id: 'dvtSymptoms', labelAr: 'علامات وأعراض سريرية لـ DVT (+3)', labelEn: 'Clinical Signs/Symptoms of DVT (+3)', type: 'checkbox' },
+            { id: 'peMostLikely', labelAr: 'الانصمام الرئوي هو التشخيص الأول الأرجح (+3)', labelEn: 'PE is #1 Diagnosis or Equally Likely (+3)', type: 'checkbox' },
+            { id: 'tachycardiaHr100', labelAr: 'النبض > 100 نبضة/دقيقة (+1.5)', labelEn: 'Heart Rate > 100 bpm (+1.5)', type: 'checkbox' },
+            { id: 'immobilizationOrSurgery', labelAr: 'عدم حركة ≥3 أيام أو جراحة خلال 4 أسابيع (+1.5)', labelEn: 'Immobilization ≥3d or Surgery in past 4wk (+1.5)', type: 'checkbox' },
+            { id: 'priorDvtPe', labelAr: 'تاريخ سابق لـ DVT أو PE (+1.5)', labelEn: 'Previous DVT or PE (+1.5)', type: 'checkbox' },
+            { id: 'hemoptysis', labelAr: 'نفث دموي (+1)', labelEn: 'Hemoptysis (+1)', type: 'checkbox' },
+            { id: 'malignancy', labelAr: 'ورم خبيث نشط (+1)', labelEn: 'Active Malignancy (+1)', type: 'checkbox' }
+        ], run: (v) => mqWellsPe(v) },
+        { id: 'curb65', labelKey: 'calcCurb65', fields: [
+            { id: 'confusion', labelAr: 'تخليط ذهني جديد (Confusion)', labelEn: 'Confusion (New onset)', type: 'checkbox' },
+            { id: 'bunAbove19', labelAr: 'اليوريا BUN > 19 mg/dL (أو Urea > 7 mmol/L)', labelEn: 'BUN > 19 mg/dL (Urea > 7 mmol/L)', type: 'checkbox' },
+            { id: 'rr30OrMore', labelAr: 'معدل التنفس ≥ 30/دقيقة', labelEn: 'Respiratory Rate ≥ 30/min', type: 'checkbox' },
+            { id: 'bpLow', labelAr: 'الضغط الانقباضي <90 أو الانبساطي ≤60', labelEn: 'SBP < 90 mmHg or DBP ≤ 60 mmHg', type: 'checkbox' },
+            { id: 'age65OrMore', labelAr: 'العمر ≥ 65 سنة', labelEn: 'Age ≥ 65 years', type: 'checkbox' }
+        ], run: (v) => mqCurb65(v) },
+        { id: 'qsofa', labelKey: 'calcQsofa', fields: [
+            { id: 'rr22OrMore', labelAr: 'معدل التنفس ≥ 22/دقيقة', labelEn: 'Respiratory Rate ≥ 22/min', type: 'checkbox' },
+            { id: 'gcsUnder15', labelAr: 'تغير الحالة الذهنية (GCS < 15)', labelEn: 'Altered Mentation (GCS < 15)', type: 'checkbox' },
+            { id: 'sbp100OrLess', labelAr: 'الضغط الانقباضي ≤ 100 mmHg', labelEn: 'Systolic BP ≤ 100 mmHg', type: 'checkbox' }
+        ], run: (v) => mqQsofa(v) },
+        { id: 'cha2ds2', labelKey: 'calcCha2', fields: [
+            { id: 'chf', labelAr: 'قصور القلب الاحتقاني (+1)', labelEn: 'Congestive Heart Failure (+1)', type: 'checkbox' },
+            { id: 'hypertension', labelAr: 'ارتفاع ضغط الدم (+1)', labelEn: 'Hypertension (+1)', type: 'checkbox' },
+            { id: 'age', labelAr: 'العمر (سنة)', labelEn: 'Age (years)', type: 'number', val: 68 },
+            { id: 'diabetes', labelAr: 'داء السكري (+1)', labelEn: 'Diabetes Mellitus (+1)', type: 'checkbox' },
+            { id: 'priorStrokeTia', labelAr: 'سكتة دماغية أو TIA سابقة (+2)', labelEn: 'Prior Stroke / TIA / Thromboembolism (+2)', type: 'checkbox' },
+            { id: 'vascularDisease', labelAr: 'مرض وعائي (احتشاء سابق أو شرايين محيطية) (+1)', labelEn: 'Vascular Disease (Prior MI, PAD) (+1)', type: 'checkbox' },
+            { id: 'female', labelAr: 'الجنس أنثى (+1)', labelEn: 'Female Sex (+1)', type: 'checkbox' }
+        ], run: (v) => mqCha2ds2Vasc(v) },
+        { id: 'hasbled', labelKey: 'calcHasbled', fields: [
+            { id: 'hypertension', labelAr: 'ضغط غير مضبوط SBP > 160 (+1)', labelEn: 'Uncontrolled Hypertension SBP > 160 (+1)', type: 'checkbox' },
+            { id: 'abnormalRenal', labelAr: 'قصور كلوي مزمن أو غسيل (+1)', labelEn: 'Abnormal Renal Function (+1)', type: 'checkbox' },
+            { id: 'abnormalLiver', labelAr: 'مرض كبدي مزمن / تشمع (+1)', labelEn: 'Abnormal Liver Function (+1)', type: 'checkbox' },
+            { id: 'strokeHistory', labelAr: 'تاريخ سكتة دماغية سابقة (+1)', labelEn: 'Prior Stroke History (+1)', type: 'checkbox' },
+            { id: 'bleedingHistory', labelAr: 'تاريخ نزف سابق أو استعداد للنزف (+1)', labelEn: 'Prior Major Bleeding or Predisposition (+1)', type: 'checkbox' },
+            { id: 'labileInr', labelAr: 'تذبذب INR (أقل من 60% في النطاق العلاجي) (+1)', labelEn: 'Labile INR (+1)', type: 'checkbox' },
+            { id: 'elderlyAge65', labelAr: 'العمر > 65 سنة (+1)', labelEn: 'Elderly Age > 65 (+1)', type: 'checkbox' },
+            { id: 'antiplateletsOrNsaids', labelAr: 'أدوية مضادة للصفائح أو مسكنات NSAIDs (+1)', labelEn: 'Concomitant Antiplatelets or NSAIDs (+1)', type: 'checkbox' },
+            { id: 'alcoholExcess', labelAr: 'تعاطي الكحول (+1)', labelEn: 'Alcohol Excess (+1)', type: 'checkbox' }
+        ], run: (v) => mqHasBled(v) },
+        { id: 'chads2', labelKey: 'calcChads2', fields: [
+            { id: 'chf', labelAr: 'قصور القلب الاحتقاني (+1)', labelEn: 'CHF (+1)', type: 'checkbox' },
+            { id: 'hypertension', labelAr: 'ارتفاع ضغط الدم (+1)', labelEn: 'Hypertension (+1)', type: 'checkbox' },
+            { id: 'age75OrMore', labelAr: 'العمر ≥ 75 سنة (+1)', labelEn: 'Age ≥ 75 years (+1)', type: 'checkbox' },
+            { id: 'diabetes', labelAr: 'داء السكري (+1)', labelEn: 'Diabetes (+1)', type: 'checkbox' },
+            { id: 'strokeTia', labelAr: 'سكتة دماغية أو TIA سابقة (+2)', labelEn: 'Prior Stroke or TIA (+2)', type: 'checkbox' }
+        ], run: (v) => mqChads2(v) },
+        { id: 'killip', labelKey: 'calcKillip', fields: [
+            { id: 'grade', labelAr: 'الدرجة السريرية لـ Killip', labelEn: 'Killip Clinical Class', type: 'select', opts: [
+                { v: 1, ar: 'Class I: لا توجد علامات قصور قلب', en: 'Class I: No signs of heart failure' },
+                { v: 2, ar: 'Class II: خراخر بالرئة أو صوت S3', en: 'Class II: Mild HF, rales <50% or S3' },
+                { v: 3, ar: 'Class III: وذمة رئة صريحة شاملة', en: 'Class III: Frank pulmonary edema' },
+                { v: 4, ar: 'Class IV: صدمة قلبية (ضغط <90)', en: 'Class IV: Cardiogenic shock' }
+            ] }
+        ], run: (v) => mqKillip(v.grade) },
+        { id: 'gcs', labelKey: 'calcGcs', fields: [
+            { id: 'e', labelAr: 'فتح العين (Eye Opening 1-4)', labelEn: 'Eye Opening (1-4)', type: 'select', opts: [{ v: 4, ar: '4 - تلقائي', en: '4 - Spontaneous' }, { v: 3, ar: '3 - للتنبيه الصوتي', en: '3 - To speech' }, { v: 2, ar: '2 - للتنبيه المؤلم', en: '2 - To pain' }, { v: 1, ar: '1 - لا توجد استجابة', en: '1 - None' }] },
+            { id: 'v', labelAr: 'الاستجابة اللفظية (Verbal 1-5)', labelEn: 'Verbal Response (1-5)', type: 'select', opts: [{ v: 5, ar: '5 - متوجه ومدرك', en: '5 - Oriented' }, { v: 4, ar: '4 - مشوش', en: '4 - Confused' }, { v: 3, ar: '3 - كلمات غير مترابطة', en: '3 - Inappropriate words' }, { v: 2, ar: '2 - أصوات غير مفهومة', en: '2 - Incomprehensible sounds' }, { v: 1, ar: '1 - لا توجد استجابة', en: '1 - None' }] },
+            { id: 'm', labelAr: 'الاستجابة الحركية (Motor 1-6)', labelEn: 'Motor Response (1-6)', type: 'select', opts: [{ v: 6, ar: '6 - يطيع الأوامر', en: '6 - Obeys commands' }, { v: 5, ar: '5 - يحدد موضع الألم', en: '5 - Localizes pain' }, { v: 4, ar: '4 - يسحب الطرف للألم', en: '4 - Withdraws from pain' }, { v: 3, ar: '3 - عطف شاذ (فصل قشرة)', en: '3 - Decorticate flexion' }, { v: 2, ar: '2 - بسط شاذ (فصل مخ)', en: '2 - Decerebrate extension' }, { v: 1, ar: '1 - لا توجد استجابة', en: '1 - None' }] }
+        ], run: (v) => mqGcs(v.e, v.v, v.m) },
+        { id: 'apache', labelKey: 'calcApache', fields: [
+            { id: 'age', labelAr: 'العمر (سنة)', labelEn: 'Age (years)', type: 'number', val: 60 },
+            { id: 'tempC', labelAr: 'الحرارة (°C)', labelEn: 'Temp (°C)', type: 'number', val: 38.2 },
+            { id: 'mapMmHg', labelAr: 'الضغط الشرياني الوسطي MAP', labelEn: 'MAP (mmHg)', type: 'number', val: 75 },
+            { id: 'heartRate', labelAr: 'النبض (bpm)', labelEn: 'Heart Rate', type: 'number', val: 115 },
+            { id: 'rr', labelAr: 'التنفس (/دقيقة)', labelEn: 'Respiratory Rate', type: 'number', val: 24 },
+            { id: 'arterialPh', labelAr: 'pH الدم الشرياني', labelEn: 'Arterial pH', type: 'number', val: 7.32 },
+            { id: 'serumNa', labelAr: 'الصوديوم Na', labelEn: 'Serum Na', type: 'number', val: 138 },
+            { id: 'serumK', labelAr: 'البوتاسيوم K', labelEn: 'Serum K', type: 'number', val: 4.5 },
+            { id: 'serumCr', labelAr: 'الكرياتينين Cr', labelEn: 'Serum Cr', type: 'number', val: 1.6 },
+            { id: 'wbcKPerMcl', labelAr: 'كريات الدم البيضاء WBC (x10³/µL)', labelEn: 'WBC (x10³/µL)', type: 'number', val: 16 },
+            { id: 'gcsTotal', labelAr: 'مقياس غلاسكو GCS (3-15)', labelEn: 'GCS Total (3-15)', type: 'number', val: 13 }
+        ], run: (v) => mqApache2(v) },
+        { id: 'unit_conv', labelKey: 'calcUnitConv', nameAr: 'محول الوحدات المخبرية والسريرية', nameEn: 'Clinical Unit Converter', fields: [
+            { id: 'val', labelAr: 'القيمة', labelEn: 'Value', type: 'number', val: 100 },
+            { id: 'pair', labelAr: 'نوع التحويل', labelEn: 'Conversion Type', type: 'select', opts: [
+                { v: 'mg/dl-glucose->mmol/l', ar: 'جلوكوز: mg/dL ⬅️ mmol/L', en: 'Glucose: mg/dL ➔ mmol/L' },
+                { v: 'mmol/l-glucose->mg/dl', ar: 'جلوكوز: mmol/L ⬅️ mg/dL', en: 'Glucose: mmol/L ➔ mg/dL' },
+                { v: 'mg/dl-creatinine->umol/l', ar: 'كرياتينين: mg/dL ⬅️ µmol/L', en: 'Creatinine: mg/dL ➔ µmol/L' },
+                { v: 'umol/l-creatinine->mg/dl', ar: 'كرياتينين: µmol/L ⬅️ mg/dL', en: 'Creatinine: µmol/L ➔ mg/dL' },
+                { v: 'mg/dl-cholesterol->mmol/l', ar: 'كولسترول: mg/dL ⬅️ mmol/L', en: 'Cholesterol: mg/dL ➔ mmol/L' },
+                { v: 'mg/dl-bili->umol/l', ar: 'بيليروبين: mg/dL ⬅️ µmol/L', en: 'Bilirubin: mg/dL ➔ µmol/L' },
+                { v: 'kg->lb', ar: 'وزن: كجم kg ⬅️ رطل lb', en: 'Weight: kg ➔ lb' },
+                { v: 'c->f', ar: 'حرارة: °C ⬅️ °F', en: 'Temp: °C ➔ °F' }
+            ] }
+        ], run: (v) => {
+            const parts = String(v.pair).split('->');
+            return { convertedValue: mqConvertUnit(v.val, parts[0], parts[1]), unit: parts[1] };
+        } },
+        { id: 'ibw', labelKey: 'calcIbw', fields: [{ id: 'h', labelAr: 'الطول (سم)', labelEn: 'Height (cm)', type: 'number', val: 172 }, { id: 'sex', labelAr: 'الجنس', labelEn: 'Sex', type: 'select', opts: [{ v: 'male', ar: 'ذكر', en: 'Male' }, { v: 'female', ar: 'أنثى', en: 'Female' }] }], run: (v) => mqIbw(v.h, v.sex) },
+        { id: 'bsa', labelKey: 'calcBsa', fields: [{ id: 'w', labelAr: 'الوزن (كجم)', labelEn: 'Weight (kg)', type: 'number', val: 70 }, { id: 'h', labelAr: 'الطول (سم)', labelEn: 'Height (cm)', type: 'number', val: 170 }], run: (v) => mqBsa(v.w, v.h) },
+        { id: 'map', labelKey: 'calcMap', fields: [{ id: 'sbp', labelAr: 'الضغط الانقباضي SBP (mmHg)', labelEn: 'Systolic BP (mmHg)', type: 'number', val: 120 }, { id: 'dbp', labelAr: 'الضغط الانبساطي DBP (mmHg)', labelEn: 'Diastolic BP (mmHg)', type: 'number', val: 80 }], run: (v) => mqMap(v.sbp, v.dbp) },
+        { id: 'pp', labelKey: 'calcPp', fields: [{ id: 'sbp', labelAr: 'الضغط الانقباضي SBP', labelEn: 'Systolic BP', type: 'number', val: 130 }, { id: 'dbp', labelAr: 'الضغط الانبساطي DBP', labelEn: 'Diastolic BP', type: 'number', val: 75 }], run: (v) => mqPulsePressure(v.sbp, v.dbp) },
+        { id: 'co2v', labelKey: 'calcCo2Venous', fields: [{ id: 'hco3', labelAr: 'البيكربونات HCO3 (mEq/L)', labelEn: 'Serum HCO3', type: 'number', val: 24 }, { id: 'pco2', labelAr: 'PCO2 الوريدي (mmHg)', labelEn: 'Venous PCO2', type: 'number', val: 45 }], run: (v) => mqCarbonDioxideContentVenus(v.hco3, v.pco2) },
+        { id: 'winters', labelKey: 'calcWinters', fields: [{ id: 'hco3', labelAr: 'البيكربونات HCO3 (mEq/L)', labelEn: 'Serum HCO3 (mEq/L)', type: 'number', val: 14 }], run: (v) => mqExpectedPaco2(v.hco3) },
+        { id: 'aagrad', labelKey: 'calcAaGrad', fields: [{ id: 'pao2', labelAr: 'PaO2 الشرياني (mmHg)', labelEn: 'Arterial PaO2', type: 'number', val: 75 }, { id: 'fio2', labelAr: 'FiO2 (%)', labelEn: 'FiO2 (%)', type: 'number', val: 21 }, { id: 'paco2', labelAr: 'PaCO2 الشرياني (mmHg)', labelEn: 'Arterial PaCO2', type: 'number', val: 38 }, { id: 'age', labelAr: 'عمر المريض (سنة)', labelEn: 'Patient Age', type: 'number', val: 40 }], run: (v) => mqAaGradient(v.pao2, v.fio2, v.paco2, v.age) },
+        { id: 'ped_bmi', labelKey: 'calcPedBmi', fields: [{ id: 'w', labelAr: 'وزن الطفل (كجم)', labelEn: 'Weight (kg)', type: 'number', val: 28 }, { id: 'h', labelAr: 'طول الطفل (سم)', labelEn: 'Height (cm)', type: 'number', val: 125 }, { id: 'age', labelAr: 'العمر (2-18 سنة)', labelEn: 'Age (2-18 yrs)', type: 'number', val: 8 }, { id: 'sex', labelAr: 'الجنس', labelEn: 'Sex', type: 'select', opts: [{ v: 'male', ar: 'ذكر', en: 'Male' }, { v: 'female', ar: 'أنثى', en: 'Female' }] }], run: (v) => mqBmi_children(v.w, v.h, v.age, v.sex) },
+        { id: 'ped_bp', labelKey: 'calcPedBp', fields: [{ id: 'age', labelAr: 'عمر الطفل (سنة)', labelEn: 'Child Age (years)', type: 'number', val: 6 }, { id: 'sex', labelAr: 'الجنس', labelEn: 'Sex', type: 'select', opts: [{ v: 'male', ar: 'ذكر', en: 'Male' }, { v: 'female', ar: 'أنثى', en: 'Female' }] }], run: (v) => mqPediatricBp(v.age, v.sex) },
+        { id: 'ehrlich', labelKey: 'calcEhrlich', fields: [
+            { id: 'hypotension', labelAr: 'هبوط الضغط الشرياني', labelEn: 'Hypotension', type: 'checkbox' },
+            { id: 'alteredMental', labelAr: 'تغير مستوى الوعي', labelEn: 'Altered Mental Status', type: 'checkbox' },
+            { id: 'thrombocytopenia', labelAr: 'نقص الصفائح الدموية', labelEn: 'Thrombocytopenia', type: 'checkbox' },
+            { id: 'elevatedLactate', labelAr: 'ارتفاع لاكتات الدم', labelEn: 'Elevated Serum Lactate', type: 'checkbox' },
+            { id: 'oliguria', labelAr: 'شح البول (Oliguria)', labelEn: 'Oliguria', type: 'checkbox' },
+            { id: 'hypoxemia', labelAr: 'نقص أكسجة الدم', labelEn: 'Hypoxemia', type: 'checkbox' }
+        ], run: (v) => mqEhrlichScore(v) },
+        { id: 'nihss', labelKey: 'calcNihss', fields: [{ id: 'sc', labelAr: 'مجموع نقاط NIHSS (0 - 42)', labelEn: 'Total NIHSS Score (0 - 42)', type: 'number', val: 9 }], run: (v) => mqNihss_interpretation(v.sc) },
+        { id: 'abcd2', labelKey: 'calcAbcd2', fields: [
+            { id: 'age', labelAr: 'العمر (سنة)', labelEn: 'Age (years)', type: 'number', val: 65 },
+            { id: 'bpElevated', labelAr: 'الضغط ≥ 140/90 mmHg (+1)', labelEn: 'BP ≥ 140/90 mmHg (+1)', type: 'checkbox' },
+            { id: 'unilateralWeakness', labelAr: 'ضعف حركي أحادي الجانب (+2)', labelEn: 'Unilateral Weakness (+2)', type: 'checkbox' },
+            { id: 'speechDisturbance', labelAr: 'اضطراب كلام بدون ضعف حركي (+1)', labelEn: 'Speech Disturbance without Weakness (+1)', type: 'checkbox' },
+            { id: 'durationMin', labelAr: 'مدة الأعراض (بالدقائق)', labelEn: 'Symptom Duration (minutes)', type: 'number', val: 45 },
+            { id: 'diabetes', labelAr: 'داء السكري (+1)', labelEn: 'Diabetes Mellitus (+1)', type: 'checkbox' }
+        ], run: (v) => mqAbcd2Score(v) },
+        { id: 'ckd_stage', labelKey: 'calcCkdStages', fields: [{ id: 'egfr', labelAr: 'قيمة eGFR (mL/min/1.73m²)', labelEn: 'eGFR (mL/min/1.73m²)', type: 'number', val: 42 }], run: (v) => mqCkd_stages(v.egfr) },
+        { id: 'kcal', labelKey: 'calcKcal', fields: [
+            { id: 'w', labelAr: 'الوزن (كجم)', labelEn: 'Weight (kg)', type: 'number', val: 72 },
+            { id: 'h', labelAr: 'الطول (سم)', labelEn: 'Height (cm)', type: 'number', val: 174 },
+            { id: 'age', labelAr: 'العمر (سنة)', labelEn: 'Age (years)', type: 'number', val: 25 },
+            { id: 'sex', labelAr: 'الجنس', labelEn: 'Sex', type: 'select', opts: [{ v: 'male', ar: 'ذكر', en: 'Male' }, { v: 'female', ar: 'أنثى', en: 'Female' }] },
+            { id: 'act', labelAr: 'مستوى النشاط البدني', labelEn: 'Activity Level', type: 'select', opts: [
+                { v: 'sedentary', ar: 'خامل / مكتبي', en: 'Sedentary' },
+                { v: 'light', ar: 'نشاط خفيف (1-3 أيام)', en: 'Lightly Active' },
+                { v: 'moderate', ar: 'نشاط متوسط (3-5 أيام)', en: 'Moderately Active' },
+                { v: 'very', ar: 'نشاط عالي (6-7 أيام)', en: 'Very Active' }
+            ] }
+        ], run: (v) => mqDailyKcal(v.w, v.h, v.age, v.sex, v.act) }
+    ];
+
+    let activeCalcId = 'bmi';
+
+    function getCalcTitle(calcObj) {
+        const isEn = getLang() === 'en';
+        if (isEn && calcObj.nameEn) return calcObj.nameEn;
+        if (!isEn && calcObj.nameAr) return calcObj.nameAr;
+        if (typeof mqT === 'function' && calcObj.labelKey) return mqT(calcObj.labelKey);
+        return calcObj.id.toUpperCase();
+    }
+
+    function renderCalculatorsSidebar() {
+        const list = document.getElementById('calc-sidebar-list');
+        if (!list) return;
+        const q = (document.getElementById('calc-filter-inp')?.value || '').trim().toLowerCase();
+
+        const filtered = CALCULATORS_CATALOG.filter(c => {
+            const title = getCalcTitle(c).toLowerCase();
+            return !q || title.includes(q) || c.id.includes(q);
+        });
+
+        list.innerHTML = filtered.map((c, idx) => `
+            <button type="button" class="calc-item-btn ${c.id === activeCalcId ? 'active' : ''}" onclick="selectCalculator('${c.id}')">
+                ${idx + 1}. ${escapeHTML(getCalcTitle(c))}
+            </button>
+        `).join('');
+    }
+
+    function selectCalculator(id) {
+        activeCalcId = id;
+        renderCalculatorsSidebar();
+        renderActiveCalculatorForm();
+    }
+
+    function renderActiveCalculatorForm() {
+        const box = document.getElementById('calc-active-workspace');
+        if (!box) return;
+        const calc = CALCULATORS_CATALOG.find(c => c.id === activeCalcId) || CALCULATORS_CATALOG[0];
+        const isEn = getLang() === 'en';
+
+        let fieldsHtml = calc.fields.map(f => {
+            const label = isEn ? f.labelEn : f.labelAr;
+            if (f.type === 'checkbox') {
+                return `
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:700; margin-bottom:8px;">
+                        <input type="checkbox" class="calc-inp-field" data-fid="${f.id}" onchange="executeCurrentCalc()">
+                        <span>${escapeHTML(label)}</span>
+                    </label>
+                `;
+            }
+            if (f.type === 'select') {
+                return `
+                    <div style="margin-bottom:10px;">
+                        <label style="font-size:0.84rem; font-weight:800; display:block; margin-bottom:4px;">${escapeHTML(label)}:</label>
+                        <select class="calc-inp-field" data-fid="${f.id}" onchange="executeCurrentCalc()" style="width:100%; padding:9px; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border); font-weight:700;">
+                            ${(f.opts || []).map(o => `<option value="${escapeHTML(o.v)}">${escapeHTML(isEn ? o.en : o.ar)}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+            return `
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:0.84rem; font-weight:800; display:block; margin-bottom:4px;">${escapeHTML(label)}:</label>
+                    <input type="number" step="any" class="calc-inp-field" data-fid="${f.id}" value="${f.val ?? ''}" oninput="executeCurrentCalc()" style="width:100%; padding:9px; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border); font-weight:800;">
+                </div>
+            `;
+        }).join('');
+
+        box.innerHTML = `
+            <h3 style="margin-top:0; color:var(--gold); border-bottom:1px dashed var(--border); padding-bottom:8px;">🧮 ${escapeHTML(getCalcTitle(calc))}</h3>
+            <div>${fieldsHtml}</div>
+            <div id="calc-output-card" class="explanation-box" style="margin-top:12px;"></div>
+        `;
+        executeCurrentCalc();
+    }
+
+    function executeCurrentCalc() {
+        const calc = CALCULATORS_CATALOG.find(c => c.id === activeCalcId);
+        const out = document.getElementById('calc-output-card');
+        if (!calc || !out) return;
+
+        const vals = {};
+        document.querySelectorAll('.calc-inp-field').forEach(el => {
+            const fid = el.dataset.fid;
+            if (el.type === 'checkbox') vals[fid] = el.checked;
+            else vals[fid] = el.value;
+        });
+
+        try {
+            const res = calc.run(vals) || {};
+            const isEn = getLang() === 'en';
+            const mainNumber = res.value ?? res.egfr ?? res.corrected ?? res.ag ?? res.ratio ?? res.calculated ?? res.gap ?? res.score ?? res.total ?? res.totalScore ?? res.convertedValue ?? res.ibw ?? res.bsa ?? res.map ?? res.pp ?? res.totalCo2 ?? res.expected ?? res.gradient ?? res.bmi ?? res.medianSbp ?? res.tdee ?? '';
+            const mainText = isEn
+                ? (res.interpretation || res.interpretationEn || res.notesEn || res.riskEn || res.recommendationEn || res.severityEn || res.description || res.mortalityEn || res.classification || '')
+                : (res.interpretationAr || res.notesAr || res.classAr || res.stageAr || res.riskAr || res.recommendationAr || res.severityAr || res.descriptionAr || res.mortalityAr || res.interpretation || '');
+
+            out.innerHTML = `
+                <div style="font-size:1.5rem; font-weight:900; color:${res.color || 'var(--gold)'}; margin-bottom:4px;" dir="ltr">
+                    Result: ${escapeHTML(String(mainNumber))} ${escapeHTML(res.unit || res.ckdStage || res.classification || '')}
+                </div>
+                <div style="font-weight:700; line-height:1.6;">${escapeHTML(mainText)}</div>
+            `;
+        } catch (e) {
+            out.innerText = 'يرجى التحقق من القيم المدخلة.';
+        }
+    }
+
+    // ==========================================================================
+    // 3. صانع المختصرات الطبية (MedMnemonic AI) مع الأمثلة الجاهزة والسيرفر
+    // ==========================================================================
+    const PRESET_MNEMONICS = {
+        "Cranial Nerves": `🎯 Mnemonic (12 Cranial Nerves):
+"Oh, Oh, Oh, To Touch And Feel Very Good Velvet, AH!"
+• CN I: Olfactory (Sensory)
+• CN II: Optic (Sensory)
+• CN III: Oculomotor (Motor)
+• CN IV: Trochlear (Motor)
+• CN V: Trigeminal (Both)
+• CN VI: Abducens (Motor)
+• CN VII: Facial (Both)
+• CN VIII: Vestibulocochlear (Sensory)
+• CN IX: Glossopharyngeal (Both)
+• CN X: Vagus (Both)
+• CN XI: Accessory (Motor)
+• CN XII: Hypoglossal (Motor)
+
+💡 Sensory / Motor / Both:
+"Some Say Marry Money, But My Brother Says Big Brains Matter More"`,
+
+        "MUDPILES": `🎯 High Anion Gap Metabolic Acidosis (MUDPILES):
+• M — Methanol (Formic acid / visual loss)
+• U — Uremia (Advanced Renal Failure)
+• D — Diabetic Ketoacidosis (DKA) / Alcoholic Ketoacidosis
+• P — Propylene glycol / Paracetamol (chronic)
+• I — Iron tablets / Isoniazid (INH)
+• L — Lactic Acidosis (Shock, Sepsis, Metformin)
+• E — Ethylene glycol (Oxalate crystals in urine)
+• S — Salicylates (Aspirin: mixed respiratory alkalosis + HAGMA)`,
+
+        "CURB-65": `🎯 CURB-65 Pneumonia Severity Score (1 point each):
+• C — Confusion (New onset disorientation)
+• U — Urea > 7 mmol/L (BUN > 19 mg/dL)
+• R — Respiratory Rate ≥ 30 breaths/min
+• B — Blood Pressure: SBP < 90 or DBP ≤ 60 mmHg
+• 65 — Age ≥ 65 years
+
+🩺 Clinical Action:
+• 0–1: Outpatient oral antibiotics
+• 2: Short inpatient hospital stay
+• ≥3: Severe pneumonia — Inpatient / ICU care`,
+
+        "Child-Pugh": `🎯 Child-Pugh Cirrhosis Score ("ABCDE"):
+• A — Albumin (>3.5 = 1pt | 2.8–3.5 = 2pt | <2.8 = 3pt)
+• B — Bilirubin (<2 = 1pt | 2–3 = 2pt | >3 = 3pt)
+• C — Clotting / INR (<1.7 = 1pt | 1.7–2.3 = 2pt | >2.3 = 3pt)
+• D — Distension / Ascites (None = 1pt | Mild = 2pt | Moderate-Severe = 3pt)
+• E — Encephalopathy (None = 1pt | Grade 1–2 = 2pt | Grade 3–4 = 3pt)
+
+🩺 Classes: Class A (5–6) | Class B (7–9) | Class C (10–15)`,
+
+        "Hypokalemia": `🎯 Signs & Symptoms of Hypokalemia ("A SIC WALT"):
+• A — Alkalosis (Metabolic)
+• S — Shallow respirations
+• I — Irritability & confusion
+• C — Cardiac arrhythmias (U-waves, flat T-waves, PVCs)
+• W — Weakness & leg cramps
+• A — Arrhythmias / digoxin toxicity predisposition
+• L — Lethargy & fatigue
+• T — Thready pulse & decreased intestinal motility (Ileus)`
+    };
+
+    function selectPresetMnemonic(key) {
+        const inp = document.getElementById('mnem-input-box');
+        const wrap = document.getElementById('mnem-result-wrapper');
+        const out = document.getElementById('mnem-output-text');
+        inp.value = key;
+        if (PRESET_MNEMONICS[key]) {
+            wrap.style.display = 'block';
+            out.innerText = PRESET_MNEMONICS[key];
+        } else {
+            generateHubMnemonic();
+        }
+    }
+
+    function clearMnemonicBox() {
+        document.getElementById('mnem-input-box').value = '';
+        document.getElementById('mnem-result-wrapper').style.display = 'none';
+    }
+
+    function copyMnemonicResult() {
+        const txt = document.getElementById('mnem-output-text').innerText;
+        navigator.clipboard.writeText(txt);
+    }
+
+    async function generateHubMnemonic(forceApi = false) {
+        const inp = document.getElementById('mnem-input-box').value.trim();
+        const wrap = document.getElementById('mnem-result-wrapper');
+        const out = document.getElementById('mnem-output-text');
+        const btn = document.getElementById('btn-run-mnemonic');
+        if (!inp) return;
+
+        wrap.style.display = 'block';
+        if (!forceApi && PRESET_MNEMONICS[inp]) {
+            out.innerText = PRESET_MNEMONICS[inp];
+            return;
+        }
+
+        btn.disabled = true;
+        out.innerText = getLang() === 'en'
+            ? '⏳ Creating smart medical mnemonic via MEDCORE AI...'
+            : '⏳ جاري ابتكار المختصر الطبي عبر محرك MEDCORE AI...';
+
+        try {
+            const res = await fetch(AI_WORKER_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    task: 'mnemonic',
+                    lang: getLang(),
+                    items: inp
+                })
+            });
+            const data = await res.json();
+            const replyText = data.mnemonic || data.explanation || data.reply || data.result || '';
+            if (data.success && replyText) {
+                out.innerText = replyText;
+            } else {
+                out.innerText = '❌ ' + (data.error || 'تعذر إنشاء المختصر حالياً.');
+            }
+        } catch (err) {
+            out.innerText = '❌ تعذر الاتصال بمحرك MEDCORE AI.';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ==========================================================================
+    // 4. قاموس المصطلحات الطبية (MQ_MED_TERMS)
+    // ==========================================================================
+    function renderMedTermsList() {
+        const box = document.getElementById('terms-results-box');
+        if (!box || typeof MQ_MED_TERMS === 'undefined') return;
+        const q = (document.getElementById('terms-search-inp')?.value || '').trim();
+        const isEn = getLang() === 'en';
+
+        const list = q && typeof mqSearchTerms === 'function' ? mqSearchTerms(q) : MQ_MED_TERMS;
+        if (list.length === 0) {
+            box.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">${isEn ? 'No matching medical terms.' : 'لا توجد مصطلحات مطابقة.'}</p>`;
+            return;
+        }
+
+        box.innerHTML = list.map(t => `
+            <div class="static-section-box" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <b style="color:var(--gold); font-size:1.02rem;" dir="ltr">${escapeHTML(t.abbr)} — ${escapeHTML(t.fullEn)}</b>
+                    <span class="status-pill">${escapeHTML(t.context || '')}</span>
+                </div>
+                <div style="font-weight:800; color:var(--primary); margin-bottom:4px;">${escapeHTML(t.fullAr || '')}</div>
+                <div style="font-size:0.86rem; line-height:1.6;">${escapeHTML(isEn ? t.definition : (t.definitionAr || t.definition))}</div>
+            </div>
+        `).join('');
+    }
+
+    // ==========================================================================
+    // 5. ساحة التحدي (مقفولة على المحاضرة المفتوحة فقط + حد أقصى 4 لاعبين)
+    // ==========================================================================
+    let arenaInitialized = false;
+
+    async function initArenaModule() {
+        const cont = document.getElementById('arena-container-box');
+        if (!cont) return;
+
+        const isEn = getLang() === 'en';
+        let myPlayerId = localStorage.getItem('mq_arena_pid') || ('p_' + Math.random().toString(36).substr(2, 6));
+        localStorage.setItem('mq_arena_pid', myPlayerId);
+        let roomId = initialArenaRoom;
+        let myName = '';
+        let lobbyUnsub = null;
+        let matchUnsub = null;
+
+        // إذا دخل كضيف عبر رابط غرفة، نجلب بيانات المحاضرة من الغرفة نفسها
+        if (roomId && !lockedLectureId) {
+            try {
+                const rDoc = await db.collection('arena_rooms').doc(roomId).get();
+                if (rDoc.exists) {
+                    lockedLectureId = rDoc.data().lectureId || '';
+                    lockedLectureTitle = rDoc.data().lectureTitle || lockedLectureId;
+                }
+            } catch (_) {}
+        }
+
+        // إذا لم يكن هناك محاضرة مفتوحة ولا رابط غرفة، نطلب منه فتح المحاضرة أولاً
+        if (!lockedLectureId && !roomId) {
+            cont.innerHTML = `
+                <div class="quiz-card" style="text-align:center; padding:32px 18px;">
+                    <div style="font-size:3rem; margin-bottom:10px;">⚔️</div>
+                    <h2 style="color:var(--gold); margin-top:0;">${isEn ? 'Open a Lecture First to Start Arena' : 'افتح رابط المحاضرة أولاً لبدء ساحة التحدي'}</h2>
+                    <p style="color:var(--text-muted); max-width:480px; margin:8px auto;">
+                        ${isEn
+                            ? 'Live Arena challenges are locked directly to the lecture you are studying. Open any lecture and click "Challenge Friends".'
+                            : 'تفتح ساحة التحدي تلقائياً على المحاضرة التي تذاكرها حالياً. افتح أي محاضرة ثم اضغط على زر ساحة التحدي.'}
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        // جلب عنوان المحاضرة إذا لم يكن ممرراً
+        if (lockedLectureId && (!lockedLectureTitle || lockedLectureTitle === lockedLectureId)) {
+            try {
+                const lDoc = await db.collection('lectures').doc(lockedLectureId).get();
+                if (lDoc.exists && lDoc.data().title) lockedLectureTitle = lDoc.data().title;
+            } catch (_) {}
+        }
+
+        const renderEntry = () => {
+            cont.innerHTML = `
+                <div class="quiz-card" style="text-align:center; max-width:520px; margin:12px auto;">
+                    <h1 style="color:var(--gold); font-size:1.85rem; margin:0 0 6px 0;">⚔️ MedQuiz Arena</h1>
+                    <div class="static-section-box" style="margin:10px 0 14px 0; text-align:center;">
+                        <small style="color:var(--text-muted); display:block;">${isEn ? 'Locked Lecture:' : 'المحاضرة المحددة للتحدي:'}</small>
+                        <b style="color:var(--gold); font-size:1.05rem;">🩺 ${escapeHTML(lockedLectureTitle || lockedLectureId)}</b>
+                    </div>
+                    <input type="text" id="arena-player-name" placeholder="${isEn ? 'Enter your name, Doctor...' : 'أدخل اسمك يا دكتور...'}" style="width:100%; padding:12px; border-radius:var(--radius-sm); border:2px solid var(--gold); background:var(--surface-elevated); color:var(--text); font-size:1rem; text-align:center; font-weight:800; margin-bottom:14px;">
+                    ${roomId
+                        ? `<button type="button" id="btn-join-room" class="btn-nav btn-green" style="width:100%; padding:13px;">🔥 ${isEn ? 'Join Challenge Room Now' : 'انضمام لغرفة التحدي الآن'}</button>`
+                        : `<button type="button" id="btn-setup-room" class="btn-nav btn-gold" style="width:100%; padding:13px;">👑 ${isEn ? 'Configure Room Settings' : 'إعداد غرفة التحدي لهذه المحاضرة'}</button>`
+                    }
+                </div>
+            `;
+            if (roomId) document.getElementById('btn-join-room').onclick = joinRoom;
+            else document.getElementById('btn-setup-room').onclick = renderHostSetup;
+        };
+
+        const renderHostSetup = () => {
+            myName = document.getElementById('arena-player-name').value.trim();
+            if (!myName) return alert(isEn ? 'Please enter your name first!' : 'يرجى كتابة اسمك أولاً يا دكتور!');
+
+            cont.innerHTML = `
+                <div class="quiz-card" style="max-width:560px; margin:12px auto;">
+                    <h2 style="color:var(--gold); margin-top:0; text-align:center;">⚙️ ${isEn ? 'Challenge Room Settings' : 'إعدادات غرفة التحدي'}</h2>
+
+                    <!-- المحاضرة مقفولة تماماً ولا يمكن تغييرها -->
+                    <div class="dynamic-section-box" style="margin-bottom:12px;">
+                        <small style="color:var(--text-muted); display:block;">🔒 ${isEn ? 'Challenge Lecture (Locked):' : 'محاضرة التحدي (مقفولة تلقائياً):'}</small>
+                        <b style="color:var(--gold); font-size:1rem;">🩺 ${escapeHTML(lockedLectureTitle || lockedLectureId)}</b>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                        <div>
+                            <label style="font-weight:800; font-size:0.84rem; display:block; margin-bottom:4px;">👥 ${isEn ? 'Max Players (Up to 4):' : 'عدد اللاعبين (بحد أقصى 4):'}</label>
+                            <select id="arena-max-players" style="width:100%; padding:10px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1.5px solid var(--gold); font-weight:800;">
+                                <option value="2">2 ${isEn ? 'Players (1 vs 1)' : 'لاعبين (مواجهة ثنائية)'}</option>
+                                <option value="3">3 ${isEn ? 'Players' : 'لاعبين'}</option>
+                                <option value="4" selected>4 ${isEn ? 'Players (Max)' : 'لاعبين (الحد الأقصى)'}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:800; font-size:0.84rem; display:block; margin-bottom:4px;">🔢 ${isEn ? 'Questions Count:' : 'عدد الأسئلة:'}</label>
+                            <input type="number" id="arena-q-count" value="10" min="1" max="50" style="width:100%; padding:10px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1.5px solid var(--border); font-weight:800;">
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+                        <div>
+                            <label style="font-weight:800; font-size:0.84rem; display:block; margin-bottom:4px;">⏱️ ${isEn ? 'Time per Question:' : 'وقت السؤال:'}</label>
+                            <select id="arena-q-time" style="width:100%; padding:10px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1.5px solid var(--border);">
+                                <option value="0">${isEn ? 'Untimed' : 'بدون وقت'}</option>
+                                <option value="30">30s</option>
+                                <option value="45" selected>45s</option>
+                                <option value="60">60s</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:800; font-size:0.84rem; display:block; margin-bottom:4px;">⚔️ ${isEn ? 'Play Mode:' : 'نظام اللعب:'}</label>
+                            <select id="arena-play-mode" style="width:100%; padding:10px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1.5px solid var(--border);">
+                                <option value="compete">🔥 ${isEn ? 'Competitive' : 'منافسة فردية سريعة'}</option>
+                                <option value="coop">🤝 ${isEn ? 'Co-op Study' : 'تعاوني جماعي'}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="button" id="btn-create-room-now" class="btn-nav btn-gold" style="width:100%; padding:13px;">🚀 ${isEn ? 'Create Room Link' : 'توليد رابط الغرفة الآن'}</button>
+                </div>
+            `;
+            document.getElementById('btn-create-room-now').onclick = createRoom;
+        };
+
+        const createRoom = async () => {
+            const btn = document.getElementById('btn-create-room-now');
+            btn.disabled = true;
+            const maxPlayers = Math.min(4, Math.max(2, parseInt(document.getElementById('arena-max-players').value, 10) || 4));
+            const qCount = Math.max(1, parseInt(document.getElementById('arena-q-count').value, 10) || 10);
+            const timerSec = parseInt(document.getElementById('arena-q-time').value, 10) || 0;
+            const mode = document.getElementById('arena-play-mode').value;
+
+            const lDoc = await db.collection('lectures').doc(lockedLectureId).get();
+            if (!lDoc.exists || !Array.isArray(lDoc.data().questions)) {
+                btn.disabled = false;
+                return alert('تعذر سحب أسئلة المحاضرة.');
+            }
+            const selectedQs = [...lDoc.data().questions].sort(() => 0.5 - Math.random()).slice(0, qCount);
+            roomId = 'r_' + Math.random().toString(36).substr(2, 6);
+
+            await db.collection('arena_rooms').doc(roomId).set({
+                id: roomId,
+                lectureId: lockedLectureId,
+                lectureTitle: lockedLectureTitle || lDoc.data().title || lockedLectureId,
+                hostId: myPlayerId,
+                maxPlayers,
+                status: 'lobby',
+                settings: { timer: timerSec, mode, maxPlayers },
+                questions: selectedQs,
+                currentQIndex: 0,
+                players: {
+                    [myPlayerId]: { name: myName, score: 0, finished: false, currentAns: null }
+                },
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            renderLobby('host');
+        };
+
+        const joinRoom = async () => {
+            myName = document.getElementById('arena-player-name').value.trim();
+            if (!myName) return alert(isEn ? 'Enter your name first!' : 'اكتب اسمك أولاً!');
+            const roomRef = db.collection('arena_rooms').doc(roomId);
+            const doc = await roomRef.get();
+            if (!doc.exists || doc.data().status !== 'lobby') {
+                return alert(isEn ? 'Room unavailable or already started!' : 'الغرفة غير متاحة أو بدأت بالفعل!');
+            }
+            const d = doc.data();
+            const maxAllowed = Math.min(4, Number(d.maxPlayers || d.settings?.maxPlayers || 4));
+            const currentPlayersCount = Object.keys(d.players || {}).length;
+
+            if (!d.players?.[myPlayerId] && currentPlayersCount >= maxAllowed) {
+                return alert(isEn ? `Room is full! (Max ${maxAllowed} players)` : `الغرفة مكتملة العدد! (الحد الأقصى ${maxAllowed} لاعبين)`);
+            }
+
+            await roomRef.update({
+                [`players.${myPlayerId}`]: { name: myName, score: 0, finished: false, currentAns: null }
+            });
+            renderLobby('guest');
+        };
+
+        const renderLobby = (role) => {
+            if (lobbyUnsub) lobbyUnsub();
+            const shareUrl = new URL('index.html', window.location.href);
+            shareUrl.searchParams.set('id', lockedLectureId);
+            shareUrl.searchParams.set('arena', 'live');
+            shareUrl.searchParams.set('room', roomId);
+
+            cont.innerHTML = `
+                <div class="quiz-card" style="text-align:center;">
+                    <h2 style="color:var(--gold); margin-top:0;">⏳ ${isEn ? 'Waiting Lobby' : 'غرفة الانتظار'}</h2>
+                    <p style="font-weight:800; color:var(--gold); margin:0 0 8px 0;">🩺 ${escapeHTML(lockedLectureTitle || lockedLectureId)}</p>
+                    <div class="static-section-box" style="margin-bottom:14px;">
+                        <small style="display:block; margin-bottom:6px; font-weight:800;">${isEn ? 'Share this invite link with your friends:' : 'شارك رابط الدعوة مع أصدقائك:'}</small>
+                        <div style="display:flex; gap:6px;">
+                            <input type="text" value="${escapeHTML(shareUrl.href)}" readonly style="flex:1; padding:9px; border-radius:6px; background:var(--surface); color:var(--gold); direction:ltr; border:1px solid var(--border); font-weight:800;">
+                            <button type="button" class="btn-nav btn-blue" onclick="navigator.clipboard.writeText('${escapeHTML(shareUrl.href)}')">📋 ${isEn ? 'Copy' : 'نسخ'}</button>
+                        </div>
+                    </div>
+                    <div id="arena-capacity-badge" style="margin-bottom:10px; font-weight:800; font-size:0.86rem; color:var(--text-muted);"></div>
+                    <div id="arena-players-grid" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
+                    ${role === 'host'
+                        ? `<button type="button" id="btn-launch-match" class="btn-nav btn-maroon" style="width:100%; padding:13px;">⚔️ ${isEn ? 'Start Match Now!' : 'ابدأ المعركة الآن!'}</button>`
+                        : `<div style="font-weight:800; color:var(--gold);">${isEn ? 'Waiting for host to start...' : 'بانتظار المضيف لبدء التحدي...'}</div>`
+                    }
+                </div>
+            `;
+
+            if (role === 'host') {
+                document.getElementById('btn-launch-match').onclick = () => {
+                    db.collection('arena_rooms').doc(roomId).update({ status: 'playing', startTime: Date.now() });
+                };
+            }
+
+            lobbyUnsub = db.collection('arena_rooms').doc(roomId).onSnapshot(doc => {
+                const data = doc.data();
+                if (!data) return;
+                const pIds = Object.keys(data.players || {});
+                const maxP = Math.min(4, Number(data.maxPlayers || data.settings?.maxPlayers || 4));
+                const capEl = document.getElementById('arena-capacity-badge');
+                if (capEl) capEl.innerText = isEn ? `Players in Room: ${pIds.length} / ${maxP}` : `اللاعبون في الغرفة: ${pIds.length} من ${maxP}`;
+
+                const grid = document.getElementById('arena-players-grid');
+                if (grid) {
+                    grid.innerHTML = pIds.map(pid => `
+                        <div class="static-section-box" style="min-width:115px; text-align:center; margin-bottom:0;">
+                            <div style="font-size:1.5rem;">${pid === data.hostId ? '👑' : '🩺'}</div>
+                            <div style="font-weight:900; font-size:0.86rem;">${escapeHTML(data.players[pid].name)}</div>
+                        </div>
+                    `).join('');
+                }
+                if (data.status === 'playing') {
+                    if (lobbyUnsub) { lobbyUnsub(); lobbyUnsub = null; }
+                    runMatchLoop(data);
+                }
+            });
+        };
+
+        const runMatchLoop = (roomData) => {
+            const qs = roomData.questions || [];
+            let cIdx = 0;
+            let myScore = 0;
+
+            const drawQ = () => {
+                if (cIdx >= qs.length) {
+                    finishMatch(myScore);
+                    return;
+                }
+                const q = qs[cIdx];
+                const opts = [...(q.options || [])].sort(() => 0.5 - Math.random());
+
+                cont.innerHTML = `
+                    <div class="stack-card">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-weight:800; font-size:0.86rem;">
+                            <span style="color:var(--gold);">🩺 ${escapeHTML(lockedLectureTitle)}</span>
+                            <span>${cIdx + 1} / ${qs.length}</span>
+                        </div>
+                        <div class="question-text">${q.q}</div>
+                        <div id="arena-q-opts" style="display:flex; flex-direction:column; gap:7px;"></div>
+                    </div>
+                `;
+                const box = document.getElementById('arena-q-opts');
+                let locked = false;
+                opts.forEach((opt, i) => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'option';
+                    b.dataset.val = opt;
+                    b.innerHTML = `<b>${String.fromCharCode(65 + i)}</b> <span>${opt}</span>`;
+                    b.onclick = () => {
+                        if (locked) return;
+                        locked = true;
+                        if (opt === q.a) myScore++;
+                        db.collection('arena_rooms').doc(roomId).update({
+                            [`players.${myPlayerId}.score`]: myScore
+                        }).catch(() => {});
+                        box.querySelectorAll('.option').forEach(btn => {
+                            btn.classList.add('locked-opt');
+                            if (btn.dataset.val === q.a) btn.classList.add('ans-correct');
+                            else if (btn.dataset.val === opt) btn.classList.add('ans-wrong');
+                        });
+                        setTimeout(() => { cIdx++; drawQ(); }, 1100);
+                    };
+                    box.appendChild(b);
+                });
+            };
+            drawQ();
+        };
+
+        const finishMatch = (myFinalScore) => {
+            const roomRef = db.collection('arena_rooms').doc(roomId);
+            roomRef.update({ [`players.${myPlayerId}.finished`]: true }).catch(() => {});
+            cont.innerHTML = `<div class="quiz-card" style="text-align:center; padding:32px;"><h3>⏳ ${isEn ? 'Waiting for other players to finish...' : 'بانتظار إنهاء بقية اللاعبين...'}</h3></div>`;
+
+            matchUnsub = roomRef.onSnapshot(doc => {
+                const data = doc.data();
+                if (!data) return;
+                const pls = Object.values(data.players || {});
+                if (pls.every(p => p.finished)) {
+                    if (matchUnsub) { matchUnsub(); matchUnsub = null; }
+                    pls.sort((a, b) => (b.score || 0) - (a.score || 0));
+                    cont.innerHTML = `
+                        <div class="quiz-card" style="text-align:center;">
+                            <div style="font-size:3rem;">🏆</div>
+                            <h2 style="color:var(--gold);">${isEn ? 'Final Standings' : 'الترتيب النهائي للمعركة'}</h2>
+                            <div style="margin:14px 0; text-align:start;">
+                                ${pls.map((p, i) => `
+                                    <div class="static-section-box" style="display:flex; justify-content:space-between; margin-bottom:7px;">
+                                        <b>#${i + 1} ${escapeHTML(p.name)}</b>
+                                        <span class="status-pill">${Number(p.score) || 0}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        };
+
+        renderEntry();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        applyHubThemeAndLang();
+        switchHubTab(activeTab);
+    });
+    </script>
+</body>
+</html>
