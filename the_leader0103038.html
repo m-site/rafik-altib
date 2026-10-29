@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDCORE Admin 👑 | لوحة القيادة المركزية</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- مكتبات Firebase الرسمية الموحدة شاملة Auth و Firestore و RTDB -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+</head>
+<body class="light-theme">
+
+    <!-- 1. الشريط العلوي للوحة القيادة -->
+    <nav class="top-navbar">
+        <div class="top-navbar-inner">
+            <div class="brand-group">
+                <span class="logo-text" onclick="openStudentSite()">👑 MEDCORE Admin</span>
+                <span id="auth-status-badge" class="status-pill" style="background:#fef3c7; color:#92400e; border-color:#f59e0b;">🔒 بانتظار الدخول</span>
+            </div>
+
+            <!-- رادار المتواجدين الحي (RTDB - 0 Read Cost) -->
+            <div class="brand-group" id="radar-bar-box" style="display:none;">
+                <div class="status-pill" id="radar-live-pill">
+                    <span class="radar-dot" id="radar-pulse-dot"></span>
+                    <span id="radar-total-badge">0 متصل الآن</span>
+                </div>
+                <button type="button" class="btn-chip" id="toggle-radar-btn" onclick="toggleGlobalRadar()">إيقاف الرادار 🛑</button>
+            </div>
+
+            <div class="navbar-actions">
+                <button type="button" class="icon-btn" onclick="openStudentSite()">🌐 موقع الطالب</button>
+                <button type="button" class="icon-btn" onclick="toggleTheme()">☀️/🌙 المظهر</button>
+                <button type="button" class="icon-btn" id="btn-logout" style="display:none; color:var(--error); border-color:var(--error);" onclick="adminLogout()">🚪 خروج</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+
+        <!-- 2. بوابة مصادقة الإدارة الآمنة (Firebase Auth) -->
+        <section id="admin-auth-gate" class="quiz-card" style="max-width:480px; margin:36px auto; text-align:center;">
+            <div style="font-size:3rem; margin-bottom:8px;">🛡️</div>
+            <h2 style="margin:0 0 8px 0; color:var(--primary);">بوابة القيادة المؤمنة (Firebase Auth)</h2>
+            <p style="font-size:0.86rem; color:var(--text-muted); margin-bottom:18px;">
+                بمجرد تسجيل دخولك هنا، يتم تفعيل صلاحيات الإدارة وزرع ختم <b>Medcore Ultra 👑</b> تلقائياً في متصفحك.
+            </p>
+            <div style="text-align:right; margin-bottom:12px;">
+                <label style="font-weight:800; font-size:0.85rem;">البريد الإلكتروني للأدمن:</label>
+                <input type="email" id="admin-login-email" placeholder="admin@medcore.com" style="width:100%; padding:12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); direction:ltr; margin-top:4px;">
+            </div>
+            <div style="text-align:right; margin-bottom:16px;">
+                <label style="font-weight:800; font-size:0.85rem;">كلمة المرور:</label>
+                <input type="password" id="admin-login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter') adminLogin()" style="width:100%; padding:12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); direction:ltr; margin-top:4px;">
+            </div>
+            <button type="button" id="btn-do-login" class="btn-nav btn-blue" style="width:100%; padding:14px;" onclick="adminLogin()">🔐 تسجيل الدخول وتفعيل Medcore Ultra</button>
+            <div id="auth-error-msg" style="color:var(--error); font-weight:800; font-size:0.85rem; margin-top:10px;"></div>
+
+            <!-- وضع الانتقال الآمن قبل تفعيل Firebase Auth من الكونسول -->
+            <details style="margin-top:18px; text-align:right; font-size:0.82rem; color:var(--text-muted); border-top:1px dashed var(--border); padding-top:10px;">
+                <summary style="cursor:pointer; font-weight:800; color:var(--accent);">⚙️ لم تقم بتفعيل Firebase Auth من لوحة جوجل بعد؟ (دخول انتقالي مؤقت)</summary>
+                <p style="margin:8px 0;">يمكنك فتح الواجهة مؤقتاً وتفعيل ختم Medcore Ultra على متصفحك وأخذ نسخة احتياطية ريثما تنشئ حساب الأدمن في Firebase Console:</p>
+                <button type="button" class="btn-nav btn-outline" style="width:100%; padding:9px;" onclick="unlockTemporaryBypass()">🔓 فتح الواجهة وتفعيل ختم الأدمن الآن</button>
+            </details>
+        </section>
+
+        <!-- 3. محتوى لوحة القيادة الشامل -->
+        <div id="admin-main-workspace" style="display:none;">
+
+            <!-- شريط حالة ختم Medcore Ultra وتوزيع المتصلين في الرادار -->
+            <div id="radar-details-strip" class="static-section-box" style="margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                    <b style="color:var(--primary);">📡 توزيع الطلاب المتصلين الآن حسب المحاضرة:</b>
+                    <span class="status-pill" style="background:var(--gold); color:#0b1322; border-color:var(--gold);">👑 ختم Medcore Ultra مفعل على متصفحك</span>
+                </div>
+                <div id="radar-content" style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <span style="color:var(--text-muted); font-size:0.85rem;">جاري الاستماع للاتصالات الحية...</span>
+                </div>
+            </div>
+
+            <!-- أزرار التبويبات الرئيسية -->
+            <div class="quiz-card" style="padding:14px; margin-bottom:18px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+                    <button type="button" class="btn-nav btn-blue" onclick="switchAdminTab('upload')">📤 المنصة الموحدة للرفع</button>
+                    <button type="button" class="btn-nav btn-maroon" onclick="switchAdminTab('modules')">📦 صانع الموديولات والفهرس</button>
+                    <button type="button" class="btn-nav btn-blue" onclick="switchAdminTab('stats')">📊 الإحصائيات وتحليل الصعوبة</button>
+                    <button type="button" class="btn-nav btn-maroon" onclick="switchAdminTab('comps')">🚩 البلاغات ومساهمات الطلاب</button>
+                    <button type="button" class="btn-nav btn-gold" onclick="switchAdminTab('notifs')">🤖 مركز AI وفك الحظر والإشعارات</button>
+                    <button type="button" class="btn-nav btn-outline" onclick="switchAdminTab('backup')">💾 النسخ الاحتياطي والتحديثات</button>
+                </div>
+            </div>
+
+            <!-- =================================================================
+                 التبويب 1: المنصة الموحدة للرفع (MCQ / MEQ / OSPE / JSON)
+                 ================================================================= -->
+            <section id="admin-sec-upload" class="admin-tab" style="display:block;">
+                <div class="quiz-card">
+                    <h2 style="margin-top:0; color:var(--primary); border-bottom:2px solid var(--maroon); padding-bottom:10px; font-size:1.2rem;">🌟 منصة الرفع الشاملة الموحدة (MCQ / MEQ / OSPE / JSON)</h2>
+
+                    <div class="dynamic-section-box" style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-bottom:16px;">
+                        <label style="cursor:pointer; font-weight:900; display:flex; align-items:center; gap:6px;">
+                            <input type="radio" name="quiz_type" value="mcq" checked onchange="toggleUnifiedUI()"> 📝 نظام MCQ (اختيار من متعدد)
+                        </label>
+                        <label style="cursor:pointer; font-weight:900; display:flex; align-items:center; gap:6px;">
+                            <input type="radio" name="quiz_type" value="meq" onchange="toggleUnifiedUI()"> ✍️ نظام MEQ (مقالي تفاعلي)
+                        </label>
+                        <label style="cursor:pointer; font-weight:900; display:flex; align-items:center; gap:6px;">
+                            <input type="radio" name="quiz_type" value="ospe" onchange="toggleUnifiedUI()"> 🔬 نظام OSPE (محطات صور)
+                        </label>
+                        <label style="cursor:pointer; font-weight:900; display:flex; align-items:center; gap:6px;">
+                            <input type="radio" name="quiz_type" value="json" onchange="toggleUnifiedUI()"> 💻 رفع كود JSON خام (+ صور اختيارية)
+                        </label>
+                    </div>
+
+                    <div class="static-section-box" style="margin-bottom:14px;">
+                        <label style="font-weight:800; font-size:0.84rem; display:block; margin-bottom:6px;">🔑 مفتاح ImgBB API لرفع الصور (يُحفظ في متصفحك فقط ولا يظهر للطلاب):</label>
+                        <input type="password" id="uni-ospe-key" placeholder="أدخل مفتاح ImgBB API عند الحاجة لرفع صور..." onchange="localStorage.setItem('imgbb_api_key', this.value.trim())" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); direction:ltr;">
+                    </div>
+
+                    <!-- أ) قسم الإدخال النصي السريع (MCQ / MEQ) -->
+                    <div id="unified-text-section">
+                        <div id="unified-hint-text" class="static-section-box" style="direction:ltr; text-align:left; font-family:monospace; font-size:0.84rem; margin-bottom:12px;">
+                            <b>Line 1:</b> Lecture Title<br>
+                            <b>Line 2+:</b> Part | [Case:... Question:...] OR [Question] | Opt1 | Opt2 | Opt3 | Opt4 | CorrectNum(1-4) | Explanation | Source(Optional)
+                        </div>
+                        <textarea id="unified-text-input" rows="9" style="width:100%; border-radius:var(--radius-md); padding:13px; direction:ltr; text-align:left; border:1.5px solid var(--border); font-family:monospace; font-size:0.88rem; background:var(--surface-elevated); color:var(--text);" placeholder="Neurology Masterclass&#10;Part 1 | Case: A 50 yr old male... Question: What is the affected nerve? | Radial | Ulnar | Median | Axillary | 1 | الشرح التفصيلي... | Lec 1 Slide 5"></textarea>
+                    </div>
+
+                    <!-- ب) قسم محطات الأوسبي (OSPE Stations) -->
+                    <div id="unified-ospe-section" style="display:none;">
+                        <input type="text" id="uni-ospe-title" placeholder="عنوان معمل الـ OSPE (مثال: Anatomy Lab 1)" style="width:100%; padding:11px; font-weight:800; border-radius:var(--radius-sm); margin-bottom:12px; border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text);">
+                        <div id="uni-ospe-stations"></div>
+                        <button type="button" class="btn-nav btn-blue" style="width:100%; margin-top:8px;" onclick="addUniOspeStation()">➕ إضافة محطة صورة جديدة</button>
+                    </div>
+
+                    <!-- ج) قسم الـ JSON الخام + دمج الصور الآلي -->
+                    <div id="unified-json-section" style="display:none;">
+                        <div class="static-section-box" style="margin-bottom:12px;">
+                            <label style="font-weight:800; display:block; margin-bottom:6px; font-size:0.85rem;">🖼️ دمج الصور التلقائي مع JSON (اختياري - يستبدل p1.jpg, p2.jpg... بروابط ImgBB):</label>
+                            <input type="file" id="bulk-images" multiple accept="image/*" style="width:100%; padding:9px; background:var(--surface); border-radius:6px; border:1px solid var(--border);">
+                            <div id="upload-status-live" style="margin-top:8px; font-weight:800; color:var(--primary);"></div>
+                        </div>
+                        <textarea id="json-input-area" rows="9" style="width:100%; border-radius:var(--radius-md); padding:13px; direction:ltr; text-align:left; border:1.5px solid var(--border); font-family:monospace; font-size:0.88rem; background:var(--surface-elevated); color:var(--text);" placeholder='{ "title": "Cardiology Lec 1", "questions": [...] }'></textarea>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-top:14px;">
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="unified-id" placeholder="ID المحاضرة (مثال: ph2ninu.quiz2.cns)" oninput="previewAdminDecodedId(this.value)" style="flex:1; padding:11px; border-radius:var(--radius-sm); text-align:center; font-weight:900; border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); direction:ltr;">
+                            <button type="button" class="btn-nav btn-outline" onclick="generateRandomID()">🎲 توليد</button>
+                        </div>
+                        <input type="text" id="unified-module-tag" placeholder="اسم الموديول للفهرس (اختياري: CNS, MSK...)" style="padding:11px; border-radius:var(--radius-sm); font-weight:800; border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text);">
+                    </div>
+                    <div id="admin-id-decode-preview" style="margin-top:8px; font-size:0.82rem; font-weight:800; color:var(--primary);"></div>
+
+                    <button type="button" id="btn-exec-unified" class="btn-nav btn-green" style="width:100%; padding:15px; font-size:1.05rem; margin-top:14px;" onclick="executeUnifiedUpload()">🚀 رفع الاختبار وتحديث الفهرس الصاروخي الآن</button>
+
+                    <div id="result-link-box" class="dynamic-section-box" style="display:none; margin-top:16px; text-align:center;">
+                        <p style="font-weight:900; margin:0 0 8px 0; color:var(--success);">🎉 تم الرفع وتحديث الفهرس بنجاح! رابط الطالب الجاهز للمشاركة:</p>
+                        <input type="text" id="final-encrypted-url" readonly style="width:100%; text-align:center; padding:10px; border-radius:6px; border:1px solid var(--gold); background:var(--surface); font-weight:900; color:var(--primary); direction:ltr; margin-bottom:10px;">
+                        <button type="button" class="btn-nav btn-blue" onclick="copyInputLink('final-encrypted-url')">📋 نسخ الرابط</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 التبويب 2: صانع الموديولات والفهرس السحابي الموحد
+                 ================================================================= -->
+            <section id="admin-sec-modules" class="admin-tab" style="display:none;">
+                <div class="quiz-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:2px solid var(--maroon); padding-bottom:10px; margin-bottom:14px;">
+                        <h2 style="margin:0; color:var(--primary); font-size:1.18rem;">📦 صانع الموديولات ومحرك الفهرس السحابي الصاروخي</h2>
+                        <button type="button" id="btn-rebuild-catalog" class="btn-nav btn-gold" onclick="rebuildMetadataCatalog()">🔄 بناء / مزامنة الفهرس الشامل لكل المحاضرات الآن</button>
+                    </div>
+
+                    <div class="static-section-box" style="margin-bottom:16px;">
+                        <p style="margin:0; font-size:0.86rem;">
+                            💡 <b>محرك الفهرس المزدوج (`lectures_search_index` + `metadata/catalog`):</b> يحفظ عناوين جميع المحاضرات وتفكيك الـ ID الخاص بها (المادة، رقم المحاضرة، حكومي/أهلية، رقم الكويز، والموديول) ليظهر بحث الطالب في <b>0.001 ثانية</b>!
+                        </p>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; margin-bottom:12px;">
+                        <div>
+                            <label style="font-weight:800; font-size:0.84rem;">🔍 كلمة البحث (في الـ ID أو العنوان أو المادة):</label>
+                            <input type="text" id="mod-keyword" placeholder="مثال: msk أو cns أو ph" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); direction:ltr; margin-top:4px;">
+                        </div>
+                        <div>
+                            <label style="font-weight:800; font-size:0.84rem; color:var(--error);">🚫 كلمة مستبعدة (اختياري):</label>
+                            <input type="text" id="mod-exclude" placeholder="مثال: gmsk" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); direction:ltr; margin-top:4px;">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-nav btn-blue" style="width:100%;" onclick="searchCatalogForModule()">🔍 1. عرض المحاضرات المطابقة من الفهرس</button>
+                    <div id="mod-result-msg" style="margin-top:10px; font-weight:800; text-align:center;"></div>
+
+                    <div id="mod-action-area" class="dynamic-section-box" style="display:none; margin-top:14px;">
+                        <h4 style="margin-top:0; color:var(--primary);">📌 المحاضرات المطابقة (حدد ما تريد ضمه للموديول):</h4>
+                        <div id="mod-preview-list" style="max-height:230px; overflow-y:auto; background:var(--surface); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px; display:flex; flex-direction:column; gap:7px;"></div>
+
+                        <label style="font-weight:800; display:block; margin-bottom:6px; font-size:0.86rem;">اسم التجميعة / الموديول الظاهر للطالب:</label>
+                        <input type="text" id="mod-name" placeholder="مثال: موديول MSK الشامل" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:12px;">
+
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn-nav btn-blue" style="flex:1;" onclick="saveModuleCollection()">📦 حفظ كموديول في قسم التجميعات</button>
+                            <button type="button" class="btn-nav btn-maroon" style="flex:1;" onclick="generateComboLinkDirectly()">🔗 توليد رابط اختبار شامل مدمج (?combo=)</button>
+                        </div>
+                        <input type="text" id="combo-direct-url" readonly style="display:none; width:100%; margin-top:10px; padding:9px; border-radius:6px; border:1px solid var(--gold); background:var(--surface); color:var(--primary); font-weight:800; direction:ltr; text-align:center;">
+                    </div>
+
+                    <h3 class="sub-sec-title" style="margin-top:22px;">📚 الموديولات المحفوظة حالياً</h3>
+                    <div id="admin-modules-render" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 التبويب 3: الإحصائيات المركزية وتحليلات صعوبة الأسئلة
+                 ================================================================= -->
+            <section id="admin-sec-stats" class="admin-tab" style="display:none;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+                    <div class="quiz-card" style="text-align:center; margin-bottom:0;">
+                        <h4 style="margin:0; color:var(--text-muted); font-size:0.9rem;">👁️ إجمالي زيارات المنصة الفعلية</h4>
+                        <h1 id="live-visits-counter" style="font-size:2.5rem; color:var(--primary); margin:8px 0;">0</h1>
+                        <small id="today-visits-badge" class="status-pill">اليوم: 0</small>
+                    </div>
+                    <div class="quiz-card" style="text-align:center; margin-bottom:0;">
+                        <h4 style="margin:0; color:var(--text-muted); font-size:0.9rem;">✍️ إجمالي الأسئلة المحلولة</h4>
+                        <h1 id="global-q-solved" style="font-size:2.5rem; color:var(--success); margin:8px 0;">0</h1>
+                        <small class="status-pill">تراكمي للدفعة</small>
+                    </div>
+                    <div class="quiz-card" style="text-align:center; margin-bottom:0;">
+                        <h4 style="margin:0; color:var(--text-muted); font-size:0.9rem;">📚 إجمالي الأسئلة المرفوعة</h4>
+                        <h1 id="admin-q-counter" style="font-size:2.5rem; color:var(--gold); margin:8px 0;">0</h1>
+                        <button type="button" class="btn-chip" onclick="rebuildMetadataCatalog()">🔄 تحديث من الفهرس</button>
+                    </div>
+                </div>
+
+                <div class="quiz-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h3 style="margin:0; color:var(--primary); font-size:1.05rem;">📅 تفصيل الزيارات اليومية والشهرية</h3>
+                        <button type="button" class="btn-chip" onclick="loadLiveStats()">🔄 تحديث الإحصائيات</button>
+                    </div>
+                    <div id="visits-history-accordion" style="max-height:280px; overflow-y:auto;"></div>
+                </div>
+
+                <div class="quiz-card">
+                    <h3 style="margin-top:0; color:var(--primary); font-size:1.05rem;">📋 جدول أداء المحاضرات (أعلى 30 محاضرة) وتحليلات صعوبة الأسئلة</h3>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>المحاضرة</th>
+                                    <th>الزيارات</th>
+                                    <th>أنهوا الحل</th>
+                                    <th>المتوسط</th>
+                                    <th>تحليل الصعوبة 🔬</th>
+                                    <th>الرابط</th>
+                                    <th>حذف آمن</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lectures-data-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 التبويب 4: صندوق البلاغات الموحد ومساهمات الطلاب
+                 ================================================================= -->
+            <section id="admin-sec-comps" class="admin-tab" style="display:none;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(330px, 1fr)); gap:16px;">
+
+                    <div class="quiz-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--maroon); padding-bottom:8px; margin-bottom:12px;">
+                            <h3 style="margin:0; color:var(--accent); font-size:1.05rem;">🚩 صندوق بلاغات الأسئلة والشكاوى</h3>
+                            <button type="button" class="btn-chip" onclick="loadUnifiedComplaints()">🔄 تحديث</button>
+                        </div>
+                        <div id="complaints-unified-list" style="display:flex; flex-direction:column; gap:10px; max-height:580px; overflow-y:auto;"></div>
+                    </div>
+
+                    <div class="quiz-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--navy); padding-bottom:8px; margin-bottom:12px;">
+                            <h3 style="margin:0; color:var(--primary); font-size:1.05rem;">📥 مساهمات الطلاب (اعتماد بضغطة زر)</h3>
+                            <button type="button" class="btn-chip" onclick="loadStudentContributions()">🔄 تحديث</button>
+                        </div>
+                        <div id="contributions-list" style="display:flex; flex-direction:column; gap:10px; max-height:580px; overflow-y:auto;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 التبويب 5: مركز تحكم MEDCORE AI + فك الحظر عن الطلاب + الإشعارات
+                 ================================================================= -->
+            <section id="admin-sec-notifs" class="admin-tab" style="display:none;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:16px;">
+
+                    <!-- أ) مركز تحكم MEDCORE AI وقائمة فك الحظر عن الطلاب المخالفين -->
+                    <div class="quiz-card">
+                        <h3 style="margin-top:0; color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:8px; font-size:1.05rem;">🤖 مركز تحكم MEDCORE AI وإدارة الحظر</h3>
+
+                        <div class="dynamic-section-box" style="font-size:0.82rem; margin-bottom:12px;">
+                            👑 <b>ختم القيادة (`Medcore Ultra`):</b> مفعل تلقائياً على متصفحك (`mq_admin_ultra_pass`).<br>
+                            ⚡ <b>الكاش السحابي المشترك:</b> يحفظ شروحات الأسئلة في RTDB لتوفير 80%+ من حصة المفاتيح.
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; text-align:center; margin-bottom:14px;">
+                            <div class="static-section-box" style="padding:10px; margin:0;">
+                                <small>📅 طلبات AI الجديدة اليوم</small>
+                                <h2 id="stats-daily-total" style="margin:4px 0; color:var(--gold);">0</h2>
+                            </div>
+                            <div class="static-section-box" style="padding:10px; margin:0; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                                <small style="margin-bottom:4px;">🗄️ الكاش السحابي للشروحات</small>
+                                <button type="button" class="btn-chip" style="color:var(--error);" onclick="clearSharedAiCache()">🗑️ مسح كاش AI لإعادة التوليد</button>
+                            </div>
+                        </div>
+
+                        <!-- قائمة المحظورين من شات الذكاء الاصطناعي مع زر فك الحظر -->
+                        <h4 class="sub-sec-title" style="margin-top:14px;">🚫 المحظورون تلقائياً من شات AI (بسبب أسئلة غير طبية)</h4>
+                        <div id="ai-banned-users-list" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+                            <p style="color:var(--text-muted); font-size:0.84rem;">⏳ جاري فحص قائمة الحظر...</p>
+                        </div>
+
+                        <!-- إصدار أكواد التفعيل -->
+                        <h4 class="sub-sec-title">🎁 إصدار أكواد تفعيل (Promo Codes) للطلاب</h4>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div style="display:flex; gap:4px; grid-column:1/-1;">
+                                <input type="text" id="promo-code-text" placeholder="كود التفعيل (اضغط توليد)" style="flex:1; padding:9px; border-radius:6px; border:1px solid var(--border); background:var(--surface-elevated); color:var(--text); font-weight:800; direction:ltr;">
+                                <button type="button" class="btn-nav btn-outline" onclick="generateUniquePromoCode()">🎲 توليد</button>
+                            </div>
+                            <input type="number" id="promo-hours" placeholder="مدة الصلاحية بالساعات (168)" style="padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface-elevated); color:var(--text);">
+                            <input type="number" id="promo-window" placeholder="مهلة التفعيل بالدقائق (60)" style="padding:8px; border-radius:6px; border:1.5px solid var(--success); background:var(--surface-elevated); color:var(--text);">
+                        </div>
+                        <button type="button" class="btn-nav btn-green" style="width:100%; margin-bottom:12px;" onclick="createPromoCode()">✨ حفظ ونشر الكود</button>
+
+                        <div id="active-promos-list" style="max-height:190px; overflow-y:auto; display:flex; flex-direction:column; gap:7px;"></div>
+                    </div>
+
+                    <!-- ب) إدارة الإشعارات والرسائل للطلاب -->
+                    <div class="quiz-card">
+                        <h3 style="margin-top:0; color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:8px; font-size:1.05rem;">📢 إرسال إشعار فوري للطلاب</h3>
+                        <label style="font-weight:800; font-size:0.84rem;">نص الرسالة أو التحديث:</label>
+                        <textarea id="notif-text" rows="3" placeholder="مثال: تم رفع محاضرة Radiology 2 الآن..." style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); margin:6px 0 10px 0;"></textarea>
+
+                        <label style="font-weight:800; font-size:0.84rem;">رابط التوجيه (اختياري - يبدأ بـ https://):</label>
+                        <input type="url" id="notif-url" placeholder="https://t.me/MEDQUIZ2026" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); direction:ltr; margin:6px 0 12px 0;">
+
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" id="send-notif-btn" class="btn-nav btn-blue" style="flex:1;" onclick="publishNotification()">📡 نشر الإشعار الآن</button>
+                            <button type="button" id="cancel-notif-edit" class="btn-nav btn-outline" style="display:none;" onclick="resetNotifForm()">إلغاء التعديل</button>
+                        </div>
+
+                        <h4 class="sub-sec-title" style="margin-top:18px;">📊 سجل آخر 15 إشعاراً وتفاعل الطلاب</h4>
+                        <div id="admin-notif-history" style="display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 التبويب 6: النسخ الاحتياطي، سلة المحذوفات، وأرشيف التحديثات الحية
+                 ================================================================= -->
+            <section id="admin-sec-backup" class="admin-tab" style="display:none;">
+                <div class="quiz-card">
+                    <h2 style="margin-top:0; color:var(--primary); border-bottom:2px solid var(--gold); padding-bottom:10px; font-size:1.15rem;">💾 النسخ الاحتياطي الكامل وسلة المحذوفات</h2>
+                    <p style="font-size:0.88rem; color:var(--text-muted);">
+                        احتفظ بنسخة احتياطية كاملة من جميع محاضراتك وموديولاتك ومعامل الأوسبي في ملف JSON واحد على جهازك لاستعادتها في أي وقت.
+                    </p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+                        <button type="button" id="btn-export-backup" class="btn-nav btn-blue" style="flex:1;" onclick="downloadFullDatabaseBackup()">📥 تحميل نسخة احتياطية كاملة (JSON Backup)</button>
+                        <button type="button" class="btn-nav btn-outline" style="flex:1;" onclick="loadDeletedLecturesTrash()">♻️ عرض سلة المحذوفات (Soft-Deleted Lectures)</button>
+                    </div>
+
+                    <div id="trash-lectures-list" style="display:none; margin-bottom:20px;" class="static-section-box"></div>
+
+                    <h3 class="sub-sec-title">🛠️ أرشيف التحديثات الحية السابقة (`live_updates`)</h3>
+                    <p style="font-size:0.82rem; color:var(--text-muted);">
+                        جميع الميزات أصبحت مدمجة الآن بشكل أصيل وآمن داخل `index.html` و`new.html` و`the_leader0103038.html`. يمكنك مراجعة المستندات القديمة في `live_updates` أو تعطيلها/حذفها.
+                    </p>
+                    <button type="button" class="btn-chip" style="margin-bottom:10px;" onclick="loadActiveUpdates()">🔄 عرض مستندات `live_updates`</button>
+                    <div id="active-updates-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- نافذة تعديل السؤال المنبثقة -->
+    <div id="modal-edit-question" class="modal-overlay">
+        <div class="modal-card" style="max-width:600px;">
+            <button type="button" class="close-btn" onclick="document.getElementById('modal-edit-question').style.display='none'">✖</button>
+            <h3 id="edit-q-modal-title" style="margin-top:0; color:var(--gold);">✏️ تعديل السؤال في قاعدة البيانات</h3>
+            <label style="font-weight:800; font-size:0.84rem;">نص السؤال:</label>
+            <textarea id="edit-q-text" rows="3" style="width:100%; padding:9px; border-radius:6px; background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); direction:ltr; text-align:left; margin-bottom:8px;"></textarea>
+
+            <label style="font-weight:800; font-size:0.84rem;">الاختيارات (كل اختيار في سطر مستقل):</label>
+            <textarea id="edit-q-opts" rows="4" style="width:100%; padding:9px; border-radius:6px; background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); direction:ltr; text-align:left; margin-bottom:8px;"></textarea>
+
+            <label style="font-weight:800; font-size:0.84rem;">الإجابة الصحيحة (مطابقة لأحد الاختيارات):</label>
+            <input type="text" id="edit-q-ans" style="width:100%; padding:9px; border-radius:6px; background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); direction:ltr; text-align:left; margin-bottom:8px;">
+
+            <label style="font-weight:800; font-size:0.84rem;">التفسير والشرح:</label>
+            <textarea id="edit-q-exp" rows="3" style="width:100%; padding:9px; border-radius:6px; background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:12px;"></textarea>
+
+            <button type="button" id="btn-save-edited-q" class="btn-nav btn-green" style="width:100%;">💾 حفظ التعديل وحذف البلاغ</button>
+        </div>
+    </div>
+
+    <!-- نافذة عرض الأسئلة عالية الصعوبة -->
+    <div id="modal-item-difficulty" class="modal-overlay">
+        <div class="modal-card" style="max-width:640px;">
+            <button type="button" class="close-btn" onclick="document.getElementById('modal-item-difficulty').style.display='none'">✖</button>
+            <h3 id="diff-modal-title" style="margin-top:0; color:var(--gold);">🔬 تحليل صعوبة الأسئلة وجودة مفتاح الإجابة</h3>
+            <div id="diff-modal-body" style="max-height:62vh; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <script>
+    /* ==========================================================================
+       MEDCORE Unified Admin Engine (v2026.7 — Smart ID Decoder & Full Search Sync)
+       ========================================================================== */
+    const firebaseConfig = {
+        apiKey: "AIzaSyAElUTnaXitLw35Hb55kQWoe1AdbGO1t8A",
+        authDomain: "medquiz2026.firebaseapp.com",
+        databaseURL: "https://medquiz2026-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "medquiz2026",
+        storageBucket: "medquiz2026.firebasestorage.app",
+        messagingSenderId: "840399052520",
+        appId: "1:840399052520:web:1181e6fcd93696b679335d"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const rtdb = firebase.database();
+    const auth = firebase.auth();
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function stripHTML(html) {
+        const d = document.createElement('div');
+        d.innerHTML = html || '';
+        return (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'med-toast';
+        t.innerText = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2600);
+    }
+
+    function getStudentUrl(id, paramName = 'id') {
+        const url = new URL('index.html', window.location.href);
+        url.searchParams.set(paramName, id);
+        return url.href;
+    }
+
+    function openStudentSite() {
+        window.open(new URL('index.html', window.location.href).href, '_blank');
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('light-theme');
+    }
+
+    // ==========================================================================
+    // محلل أكواد المحاضرات الذكي (MEDCORE Smart ID Decoder)
+    // يفكك أكواد مثل: genatics3scu.quiz3.f1 أو ph2ninu.quiz2.cns
+    // مع اعتماد ph = Pharmacology و phy = Physiology
+    // ==========================================================================
+    const MEDCORE_SUBJECT_PREFIXES = [
+        { prefix: 'community', en: 'Community',    ar: 'كوميونتي',     keywords: 'community medicine كوميونتي طب مجتمع' },
+        { prefix: 'genatics',  en: 'Genetics',     ar: 'جيناتكس',      keywords: 'genetics genatics جيناتكس وراثة وراثه' },
+        { prefix: 'genetics',  en: 'Genetics',     ar: 'جيناتكس',      keywords: 'genetics genatics جيناتكس وراثة وراثه' },
+        { prefix: 'pharma',    en: 'Pharmacology', ar: 'فارماكولوجي',   keywords: 'pharmacology pharma ph فارما فارماكولوجي أدوية ادويه' },
+        { prefix: 'physio',    en: 'Physiology',   ar: 'فسيولوجي',     keywords: 'physiology physio phy فسيولوجي وظائف أعضاء' },
+        { prefix: 'patho',     en: 'Pathology',    ar: 'باثولوجي',     keywords: 'pathology patho باثولوجي أمراض امراض' },
+        { prefix: 'micro',     en: 'Microbiology', ar: 'ميكروبيولوجي',  keywords: 'microbiology micro ميكرو ميكروبيولوجي بكتيريا مناعة' },
+        { prefix: 'histo',     en: 'Histology',    ar: 'هيستولوجي',    keywords: 'histology histo هيستو هيستولوجي أنسجة انسجه' },
+        { prefix: 'para',      en: 'Parasitology', ar: 'باراسيتولوجي',  keywords: 'parasitology para بارا باراسيتولوجي طفيليات' },
+        { prefix: 'phy',       en: 'Physiology',   ar: 'فسيولوجي',     keywords: 'physiology physio phy فسيولوجي وظائف أعضاء' },
+        { prefix: 'bio',       en: 'Biochemistry', ar: 'بايوكيمستري',   keywords: 'biochemistry bio بايو بايوكيمستري كيمياء حيوية' },
+        { prefix: 'ana',       en: 'Anatomy',      ar: 'أناتومي',      keywords: 'anatomy ana أناتومي اناتومي تشريح' },
+        { prefix: 'ph',        en: 'Pharmacology', ar: 'فارماكولوجي',   keywords: 'pharmacology pharma ph فارما فارماكولوجي أدوية ادويه' }
+    ];
+
+    function decodeMedcoreLectureId(rawId) {
+        const id = String(rawId || '').trim().toLowerCase();
+        if (!id) return null;
+
+        const segments = id.split('.');
+        const firstSeg = segments[0] || '';
+        const secondSeg = segments[1] || '';
+        const thirdSeg = segments[2] || '';
+
+        let subjectEn = '';
+        let subjectAr = '';
+        let remainder = firstSeg;
+
+        for (const s of MEDCORE_SUBJECT_PREFIXES) {
+            if (firstSeg.startsWith(s.prefix)) {
+                subjectEn = s.en;
+                subjectAr = s.ar;
+                remainder = firstSeg.slice(s.prefix.length);
+                break;
+            }
+        }
+
+        const numMatch = remainder.match(/\d+/);
+        const lecNum = numMatch ? numMatch[0] : '';
+
+        let batchAr = '';
+        if (remainder.includes('scu') || id.includes('scu')) batchAr = 'حكومي SCU';
+        else if (remainder.includes('ninu') || id.includes('ninu')) batchAr = 'أهلية NINU';
+
+        let quizLabel = '';
+        const quizToken = secondSeg.startsWith('quiz') ? secondSeg : (id.match(/quiz[123]/)?.[0] || '');
+        if (quizToken === 'quiz1') quizLabel = '★ Quiz (1)';
+        else if (quizToken === 'quiz2') quizLabel = '★ Quiz (2): Past exams & seminars';
+        else if (quizToken === 'quiz3') quizLabel = '★ Quiz (3): High yield questions';
+
+        const moduleCode = thirdSeg ? thirdSeg.toUpperCase() : (secondSeg && !secondSeg.startsWith('quiz') ? secondSeg.toUpperCase() : '');
+
+        const badges = [];
+        if (subjectAr) badges.push(`📘 ${subjectAr} (${subjectEn})`);
+        if (lecNum) badges.push(`🔢 المحاضرة ${lecNum}`);
+        if (batchAr) badges.push(`🏛️ ${batchAr}`);
+        if (quizLabel) badges.push(quizLabel);
+        if (moduleCode) badges.push(`📦 الموديول: ${moduleCode}`);
+
+        return {
+            subjectAr,
+            subjectEn,
+            lecNum,
+            batchAr,
+            quizLabel,
+            moduleCode,
+            summary: badges.join(' | ')
+        };
+    }
+
+    function previewAdminDecodedId(val) {
+        const box = document.getElementById('admin-id-decode-preview');
+        if (!box) return;
+        const dec = decodeMedcoreLectureId(val);
+        if (!dec || !dec.summary) {
+            box.innerText = '';
+            return;
+        }
+        box.innerText = `✨ تفسير الكود التلقائي في البحث: ${dec.summary}`;
+        const modInp = document.getElementById('unified-module-tag');
+        if (modInp && !modInp.value && dec.moduleCode) {
+            modInp.value = dec.moduleCode;
+        }
+    }
+
+    // ==========================================================================
+    // 1. إدارة المصادقة الآمنة + الزرع التلقائي 100% لختم Medcore Ultra للأدمن
+    // ==========================================================================
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            activateAdminWorkspace(`🟢 موثق: ${user.email}`);
+        } else if (sessionStorage.getItem('mq_temp_setup_mode') === 'true') {
+            activateAdminWorkspace(`⚠️ وضع الإعداد الانتقالي`);
+        }
+    });
+
+    async function adminLogin() {
+        const email = document.getElementById('admin-login-email').value.trim();
+        const pass = document.getElementById('admin-login-pass').value;
+        const errBox = document.getElementById('auth-error-msg');
+        errBox.innerText = '';
+        if (!email || !pass) {
+            errBox.innerText = 'يرجى إدخال البريد الإلكتروني وكلمة المرور.';
+            return;
+        }
+        try {
+            document.getElementById('btn-do-login').disabled = true;
+            await auth.signInWithEmailAndPassword(email, pass);
+        } catch (err) {
+            document.getElementById('btn-do-login').disabled = false;
+            errBox.innerText = '❌ فشل تسجيل الدخول: تأكد من بيانات حساب الأدمن في Firebase Auth.';
+        }
+    }
+
+    function unlockTemporaryBypass() {
+        sessionStorage.setItem('mq_temp_setup_mode', 'true');
+        activateAdminWorkspace('⚠️ وضع الإعداد الانتقالي');
+    }
+
+    function adminLogout() {
+        sessionStorage.removeItem('mq_temp_setup_mode');
+        localStorage.removeItem('mq_admin_ultra_pass');
+        auth.signOut().then(() => window.location.reload());
+    }
+
+    let workspaceInitialized = false;
+    function activateAdminWorkspace(badgeText) {
+        // الطريقة التلقائية 100%: زرع ختم Medcore Ultra المشفر في متصفح الأدمن وفك أي حظر محلي
+        if (!localStorage.getItem('mq_admin_ultra_pass')) {
+            const t = prompt('اكتب Ultra Token (مرة واحدة فقط):');
+            if (t) localStorage.setItem('mq_admin_ultra_pass', t.trim());
+        }
+        localStorage.removeItem('mq_ai_chat_banned');
+        localStorage.removeItem('mq_ai_strikes');
+
+        document.getElementById('admin-auth-gate').style.display = 'none';
+        document.getElementById('admin-main-workspace').style.display = 'block';
+        document.getElementById('radar-bar-box').style.display = 'flex';
+        document.getElementById('btn-logout').style.display = 'inline-flex';
+        const badge = document.getElementById('auth-status-badge');
+        badge.innerText = badgeText;
+        badge.style.background = 'var(--success-light)';
+        badge.style.color = 'var(--success)';
+
+        if (!workspaceInitialized) {
+            workspaceInitialized = true;
+            const savedImgbb = localStorage.getItem('imgbb_api_key');
+            if (savedImgbb) document.getElementById('uni-ospe-key').value = savedImgbb;
+            initAdminRadar();
+            loadAdminModulesList();
+        }
+    }
+
+    function switchAdminTab(tabId) {
+        document.querySelectorAll('.admin-tab').forEach(t => t.style.display = 'none');
+        const target = document.getElementById(`admin-sec-${tabId}`);
+        if (target) target.style.display = 'block';
+
+        if (tabId === 'stats') loadLiveStats();
+        if (tabId === 'comps') { loadUnifiedComplaints(); loadStudentContributions(); }
+        if (tabId === 'notifs') { initNotificationsAdmin(); initAiControlCenter(); }
+        if (tabId === 'backup') loadActiveUpdates();
+    }
+
+    // ==========================================================================
+    // 2. رادار المتواجدين الحي (RTDB)
+    // ==========================================================================
+    let radarUnsub = null;
+    let isRadarActive = true;
+
+    function initAdminRadar() {
+        db.collection('admin_settings').doc('radar').onSnapshot(doc => {
+            isRadarActive = doc.exists ? doc.data().active !== false : true;
+            const btn = document.getElementById('toggle-radar-btn');
+            const dot = document.getElementById('radar-pulse-dot');
+            if (isRadarActive) {
+                btn.innerText = 'إيقاف الرادار 🛑';
+                dot.style.background = 'var(--success)';
+                startListeningRadar();
+            } else {
+                btn.innerText = 'تشغيل الرادار 🟢';
+                dot.style.background = 'var(--error)';
+                stopListeningRadar();
+            }
+        });
+    }
+
+    function startListeningRadar() {
+        if (radarUnsub) return;
+        radarUnsub = rtdb.ref('presence').on('value', snap => {
+            const now = Date.now();
+            const onlineUsers = snap.val() || {};
+            let totalOnline = 0;
+            const byLec = {};
+
+            for (let uid in onlineUsers) {
+                const u = onlineUsers[uid];
+                if (now - (u.lastSeen || 0) < 120000) {
+                    totalOnline++;
+                    const lec = (u.lectureId || 'غير معروف').toUpperCase();
+                    byLec[lec] = (byLec[lec] || 0) + 1;
+                }
+            }
+            document.getElementById('radar-total-badge').innerText = `${totalOnline} متصل الآن`;
+            const cont = document.getElementById('radar-content');
+            if (totalOnline === 0) {
+                cont.innerHTML = `<span style="color:var(--text-muted); font-size:0.84rem;">لا يوجد طلاب متصلون في هذه اللحظة.</span>`;
+                return;
+            }
+            cont.innerHTML = Object.keys(byLec).sort((a, b) => byLec[b] - byLec[a]).map(lec => `
+                <span class="status-pill" style="background:var(--surface); color:var(--text); border-color:var(--border);">
+                    <b>${escapeHTML(lec)}:</b> <span style="color:var(--primary); font-weight:900;">${byLec[lec]}</span>
+                </span>
+            `).join('');
+        });
+    }
+
+    function stopListeningRadar() {
+        if (radarUnsub) { rtdb.ref('presence').off('value', radarUnsub); radarUnsub = null; }
+        document.getElementById('radar-total-badge').innerText = 'الرادار متوقف';
+        document.getElementById('radar-content').innerHTML = `<span style="color:var(--error); font-weight:800;">🛑 الرادار متوقف حالياً لجميع الطلاب.</span>`;
+    }
+
+    function toggleGlobalRadar() {
+        db.collection('admin_settings').doc('radar').set({ active: !isRadarActive }, { merge: true });
+    }
+
+    // ==========================================================================
+    // 3. المنصة الموحدة للرفع (MCQ / MEQ / OSPE / JSON) + تحديث الفهرس المزدوج
+    // ==========================================================================
+    function generateRandomID() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let res = '';
+        for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+        document.getElementById('unified-id').value = res;
+        previewAdminDecodedId(res);
+    }
+
+    function toggleUnifiedUI() {
+        const type = document.querySelector('input[name="quiz_type"]:checked').value;
+        document.getElementById('unified-text-section').style.display = (type === 'mcq' || type === 'meq') ? 'block' : 'none';
+        document.getElementById('unified-ospe-section').style.display = (type === 'ospe') ? 'block' : 'none';
+        document.getElementById('unified-json-section').style.display = (type === 'json') ? 'block' : 'none';
+
+        const hint = document.getElementById('unified-hint-text');
+        if (type === 'mcq') {
+            hint.innerHTML = '<b>Line 1:</b> Lecture Title<br><b>Line 2+:</b> Part | [Case:... Question:...] OR [Question] | Opt1 | Opt2 | Opt3 | Opt4 | CorrectNum(1-4) | Explanation | Source(Optional)';
+        } else if (type === 'meq') {
+            hint.innerHTML = '<b>Line 1:</b> Lecture Title<br><b>Line 2+:</b> Part | [Case:... Question:...] OR [Question] | Model Answer (supports **bold** and &lt;br&gt;) | Source(Optional)';
+        }
+    }
+
+    function addUniOspeStation() {
+        const wrap = document.getElementById('uni-ospe-stations');
+        const stDiv = document.createElement('div');
+        stDiv.className = 'uni-ospe-card static-section-box';
+        stDiv.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <b style="color:var(--accent);">🔬 محطة صورة OSPE</b>
+                <button type="button" class="btn-chip" style="color:var(--error);" onclick="this.closest('.uni-ospe-card').remove()">حذف المحطة 🗑️</button>
+            </div>
+            <input type="file" accept="image/*" onchange="uploadUniImg(this)" style="margin-bottom:8px; width:100%;">
+            <input type="text" class="u-o-img" placeholder="رابط الصورة المباشر (يُملأ تلقائياً بعد الرفع أو ألصق رابطاً)" style="width:100%; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); direction:ltr;">
+            <div class="u-o-q-wrap"></div>
+            <button type="button" class="btn-chip" onclick="addUniOspeQ(this.previousElementSibling)">+ أضف سؤالاً على هذه الصورة</button>
+        `;
+        wrap.appendChild(stDiv);
+        addUniOspeQ(stDiv.querySelector('.u-o-q-wrap'));
+    }
+
+    function addUniOspeQ(cont) {
+        const qDiv = document.createElement('div');
+        qDiv.style.cssText = 'margin-bottom:10px; border-right:3px solid var(--gold); padding-right:10px;';
+        qDiv.innerHTML = `
+            <input type="text" class="u-q-txt" placeholder="Question text..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:4px; direction:ltr;">
+            <textarea class="u-a-txt" rows="2" placeholder="Model Answer..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); direction:ltr;"></textarea>
+        `;
+        cont.appendChild(qDiv);
+    }
+
+    async function uploadUniImg(input) {
+        const key = document.getElementById('uni-ospe-key').value.trim();
+        if (!key) return alert('يرجى إدخال مفتاح ImgBB API أولاً في الحقل المخصص بالأعلى.');
+        localStorage.setItem('imgbb_api_key', key);
+        const file = input.files[0];
+        if (!file) return;
+        const urlInput = input.nextElementSibling;
+        urlInput.value = '⏳ جاري رفع الصورة لـ ImgBB...';
+        const fd = new FormData();
+        fd.append('image', file);
+        try {
+            const res = await fetch('https://api.imgbb.com/1/upload?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.success) urlInput.value = data.data.url;
+            else { urlInput.value = ''; alert('فشل رفع الصورة: ' + (data.error?.message || '')); }
+        } catch (e) {
+            urlInput.value = '';
+            alert('خطأ في الاتصال بخدمة ImgBB.');
+        }
+    }
+
+    function formatCleanQuestionHTML(rawQ) {
+        const caseRegex = /Case:\s*(.*?)\s*Question:\s*(.*)/i;
+        const match = rawQ.match(caseRegex);
+        if (match) {
+            return `<div class="clinical-case-card"><span class="clinical-case-badge">📋 Clinical Case</span><div>${escapeHTML(match[1])}</div></div><div><b style="color:var(--accent);">❓ Question:</b> ${escapeHTML(match[2])}</div>`;
+        }
+        return `<div>${escapeHTML(rawQ)}</div>`;
+    }
+
+    async function executeUnifiedUpload() {
+        const id = document.getElementById('unified-id').value.trim();
+        const dec = decodeMedcoreLectureId(id);
+        const modTag = document.getElementById('unified-module-tag').value.trim() || dec?.moduleCode || '';
+        const type = document.querySelector('input[name="quiz_type"]:checked').value;
+        if (!id) return alert('يرجى إدخال أو توليد ID المحاضرة أولاً.');
+
+        const btn = document.getElementById('btn-exec-unified');
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري المعالجة والرفع...';
+
+        try {
+            let title = '';
+            let questions = [];
+            let extraPayload = {};
+
+            if (type === 'mcq' || type === 'meq') {
+                const text = document.getElementById('unified-text-input').value.trim();
+                if (!text) throw new Error('يرجى إدخال نص الأسئلة.');
+                const lines = text.split(/\r?\n/);
+                title = lines[0].trim();
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const p = line.split('|').map(x => x.trim());
+
+                    if (type === 'mcq' && p.length >= 7) {
+                        const correctNum = parseInt(p[6], 10);
+                        const opts = [p[2], p[3], p[4], p[5]];
+                        const rawExp = escapeHTML(p[7] || '');
+                        const source = escapeHTML(p[8] || '');
+                        let finalExp = `<div dir="rtl" style="unicode-bidi:plaintext;">${rawExp}</div>`;
+                        if (source) finalExp += `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); font-size:0.84rem; color:var(--text-muted);">📚 <b>المصدر:</b> <span dir="ltr">${source}</span></div>`;
+
+                        questions.push({
+                            p: p[0],
+                            q: formatCleanQuestionHTML(p[1]),
+                            options: opts,
+                            a: opts[correctNum - 1] || opts[0],
+                            d: finalExp
+                        });
+                    } else if (type === 'meq' && p.length >= 3) {
+                        let formattedA = escapeHTML(p[2] || '')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--success);">$1</strong>')
+                            .replace(/&lt;br&gt;/gi, '<br>');
+                        const source = escapeHTML(p[3] || '');
+                        let finalA = `<div dir="ltr" style="text-align:left; unicode-bidi:plaintext;"><span class="ans-badge">✅ Model Answer</span><div style="margin-top:8px;">${formattedA}</div>`;
+                        if (source) finalA += `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); font-size:0.84rem; color:var(--text-muted);" dir="rtl">📚 <b>المصدر:</b> <span dir="ltr">${source}</span></div>`;
+                        finalA += `</div>`;
+
+                        questions.push({
+                            p: p[0],
+                            q: formatCleanQuestionHTML(p[1]),
+                            options: ["Show Model Answer"],
+                            a: "Show Model Answer",
+                            d: finalA
+                        });
+                    }
+                }
+            } else if (type === 'ospe') {
+                const rawTitle = document.getElementById('uni-ospe-title').value.trim();
+                if (!rawTitle) throw new Error('يرجى إدخال عنوان معمل الأوسبي.');
+                title = "OSPE: " + rawTitle;
+                const ospeLabRaw = [];
+
+                document.querySelectorAll('.uni-ospe-card').forEach(st => {
+                    const img = st.querySelector('.u-o-img').value.trim();
+                    if (!img || img.includes('⏳')) return;
+                    st.querySelectorAll('.u-o-q-wrap > div').forEach(qBox => {
+                        const qText = qBox.querySelector('.u-q-txt').value.trim();
+                        const aText = qBox.querySelector('.u-a-txt').value.trim();
+                        if (qText && aText) {
+                            ospeLabRaw.push({ img, q: qText, a: aText });
+                            questions.push({
+                                p: 'OSPE Station',
+                                q: `<div style="text-align:center; margin-bottom:10px;"><img src="${escapeHTML(img)}" alt="OSPE" style="max-width:100%; max-height:350px; border-radius:10px; border:2px solid var(--gold);"></div><div>${escapeHTML(qText)}</div>`,
+                                options: ['Show Model Answer'],
+                                a: 'Show Model Answer',
+                                d: `<div dir="ltr" style="text-align:left;"><b style="color:var(--success);">Model Answer:</b><br>${escapeHTML(aText).replace(/\n/g, '<br>')}</div>`
+                            });
+                        }
+                    });
+                });
+
+                if (ospeLabRaw.length > 0) {
+                    await db.collection('ospe_labs').doc(id).set({
+                        title,
+                        questions: ospeLabRaw,
+                        views: 0,
+                        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            } else if (type === 'json') {
+                let jsonText = document.getElementById('json-input-area').value.trim();
+                const files = document.getElementById('bulk-images').files;
+                const statusTxt = document.getElementById('upload-status-live');
+                const key = document.getElementById('uni-ospe-key').value.trim();
+
+                if (files.length > 0) {
+                    if (!key) throw new Error('أدخل مفتاح ImgBB API لرفع الصور المحددة.');
+                    for (let i = 0; i < files.length; i++) {
+                        statusTxt.innerText = `⏳ جاري رفع الصورة ${i + 1} من ${files.length}...`;
+                        const fd = new FormData();
+                        fd.append('image', files[i]);
+                        const res = await fetch('https://api.imgbb.com/1/upload?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
+                        const data = await res.json();
+                        if (!data.success) throw new Error('فشل رفع الصورة رقم ' + (i + 1));
+                        jsonText = jsonText.split(`p${i + 1}.jpg`).join(data.data.url);
+                    }
+                    document.getElementById('json-input-area').value = jsonText;
+                }
+
+                const parsed = JSON.parse(jsonText);
+                title = parsed.title || id;
+                questions = parsed.questions || [];
+                extraPayload = parsed;
+            }
+
+            if (questions.length === 0) throw new Error('لم يتم العثور على أسئلة صالحة للرفع.');
+
+            await db.collection('lectures').doc(id).set({
+                ...extraPayload,
+                title,
+                module: modTag,
+                quizType: type,
+                questions,
+                views: 0,
+                subs: 0,
+                avg_score: 0,
+                uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                time: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            const uniqueParts = Array.from(new Set(questions.map(q => q.p).filter(Boolean))).slice(0, 8).join(' | ');
+            await upsertCatalogEntry({
+                id,
+                title,
+                parts: uniqueParts,
+                module: modTag,
+                decodedInfo: dec?.summary || '',
+                qCount: questions.length,
+                type
+            });
+
+            const finalUrl = getStudentUrl(id);
+            document.getElementById('final-encrypted-url').value = finalUrl;
+            document.getElementById('result-link-box').style.display = 'block';
+            showToast(`✅ تم رفع (${questions.length}) سؤالاً وتحديث الفهرس الصاروخي!`);
+        } catch (err) {
+            alert('❌ خطأ: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '🚀 رفع الاختبار وتحديث الفهرس الصاروخي الآن';
+        }
+    }
+
+    function copyInputLink(inputId) {
+        const val = document.getElementById(inputId).value;
+        navigator.clipboard.writeText(val).then(() => showToast('✅ تم نسخ الرابط بنجاح!'));
+    }
+
+    function copyText(text) {
+        navigator.clipboard.writeText(text).then(() => showToast('✅ تم النسخ للحافظة!'));
+    }
+
+    // ==========================================================================
+    // 4. محرك الفهرس السحابي المزدوج (`lectures_search_index` + `metadata/catalog`)
+    // ==========================================================================
+    async function upsertCatalogEntry(entry) {
+        try {
+            const ref = db.collection('metadata').doc('catalog');
+            const doc = await ref.get();
+            let items = (doc.exists && Array.isArray(doc.data().items)) ? doc.data().items : [];
+            items = items.filter(i => i.id !== entry.id);
+            items.unshift(entry);
+            await ref.set({ items, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            await rtdb.ref('lectures_search_index').set(items);
+        } catch (_) {}
+    }
+
+    async function removeCatalogEntry(lecId) {
+        try {
+            const ref = db.collection('metadata').doc('catalog');
+            const doc = await ref.get();
+            if (!doc.exists || !Array.isArray(doc.data().items)) return;
+            const items = doc.data().items.filter(i => i.id !== lecId);
+            await ref.set({ items, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            await rtdb.ref('lectures_search_index').set(items);
+        } catch (_) {}
+    }
+
+    async function rebuildMetadataCatalog() {
+        const btn = document.getElementById('btn-rebuild-catalog');
+        if (btn) { btn.disabled = true; btn.innerText = '⏳ جاري بناء الفهرس الشامل لكل المحاضرات...'; }
+        try {
+            const snap = await db.collection('lectures').get();
+            const items = [];
+            let totalQ = 0;
+            snap.forEach(doc => {
+                const d = doc.data();
+                const qs = Array.isArray(d.questions) ? d.questions : [];
+                const qLen = qs.length;
+                totalQ += qLen;
+                const uniqueParts = Array.from(new Set(qs.map(q => q.p).filter(Boolean))).slice(0, 8).join(' | ');
+                const dec = decodeMedcoreLectureId(doc.id);
+                items.push({
+                    id: doc.id,
+                    title: d.title || doc.id,
+                    parts: uniqueParts,
+                    module: d.module || dec?.moduleCode || '',
+                    decodedInfo: dec?.summary || '',
+                    qCount: qLen
+                });
+            });
+
+            const oSnap = await db.collection('ospe_labs').get();
+            oSnap.forEach(doc => {
+                const d = doc.data();
+                const qLen = Array.isArray(d.questions) ? d.questions.length : 0;
+                if (!items.some(i => i.id === doc.id)) {
+                    totalQ += qLen;
+                    const dec = decodeMedcoreLectureId(doc.id);
+                    items.push({
+                        id: doc.id,
+                        title: d.title || doc.id,
+                        parts: 'OSPE Station',
+                        module: 'OSPE',
+                        decodedInfo: dec?.summary || 'OSPE',
+                        qCount: qLen
+                    });
+                }
+            });
+
+            await db.collection('metadata').doc('catalog').set({
+                items,
+                totalQuestions: totalQ,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await rtdb.ref('lectures_search_index').set(items);
+            await db.collection('analytics').doc('global').set({ total_questions: totalQ }, { merge: true });
+
+            const qCounter = document.getElementById('admin-q-counter');
+            if (qCounter) qCounter.innerText = totalQ.toLocaleString('en-US');
+            showToast(`✅ تم بناء ومزامنة الفهرس الشامل (${items.length} محاضرة / ${totalQ} سؤال)!`);
+            return items;
+        } catch (e) {
+            alert('حدث خطأ أثناء بناء الفهرس: ' + e.message);
+            return [];
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = '🔄 بناء / مزامنة الفهرس الشامل لكل المحاضرات الآن'; }
+        }
+    }
+
+    async function searchCatalogForModule() {
+        const kw = document.getElementById('mod-keyword').value.trim().toLowerCase();
+        const exStr = document.getElementById('mod-exclude').value.trim().toLowerCase();
+        const resMsg = document.getElementById('mod-result-msg');
+        const area = document.getElementById('mod-action-area');
+        const list = document.getElementById('mod-preview-list');
+
+        if (!kw) return alert('أدخل كلمة البحث أولاً.');
+        resMsg.innerText = '⏳ جاري البحث في الفهرس السحابي...';
+
+        let catDoc = await db.collection('metadata').doc('catalog').get();
+        let items = (catDoc.exists && Array.isArray(catDoc.data().items) && catDoc.data().items.length > 0)
+            ? catDoc.data().items
+            : await rebuildMetadataCatalog();
+
+        const exWords = exStr ? exStr.split(',').map(w => w.trim()).filter(Boolean) : [];
+        const matched = items.filter(item => {
+            const idL = item.id.toLowerCase();
+            const titleL = (item.title || '').toLowerCase();
+            const decL = (item.decodedInfo || '').toLowerCase();
+            const isHit = idL.includes(kw) || titleL.includes(kw) || decL.includes(kw);
+            if (!isHit) return false;
+            return !exWords.some(ex => idL.includes(ex) || titleL.includes(ex));
+        });
+
+        if (matched.length === 0) {
+            resMsg.innerHTML = `<span style="color:var(--error);">❌ لم يتم العثور على محاضرات مطابقة.</span>`;
+            area.style.display = 'none';
+            return;
+        }
+
+        resMsg.innerHTML = `<span style="color:var(--success);">✅ تم العثور على (${matched.length}) محاضرة مطابقة.</span>`;
+        list.innerHTML = matched.map(l => `
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:800;">
+                <input type="checkbox" checked value="${escapeHTML(l.id)}" data-title="${escapeHTML(l.title)}">
+                <span style="color:var(--primary); font-family:monospace;">[${escapeHTML(l.id)}]</span> — ${escapeHTML(l.title)} <small style="color:var(--text-muted);">(${l.qCount || 0} سؤال)</small>
+            </label>
+        `).join('');
+        area.style.display = 'block';
+    }
+
+    function getSelectedModuleLectures() {
+        return Array.from(document.querySelectorAll('#mod-preview-list input:checked')).map(c => ({
+            id: c.value,
+            title: c.dataset.title
+        }));
+    }
+
+    async function saveModuleCollection() {
+        const name = document.getElementById('mod-name').value.trim();
+        const selected = getSelectedModuleLectures();
+        if (!name || selected.length === 0) return alert('أدخل اسم الموديول وحدد محاضرة واحدة على الأقل.');
+        await db.collection('modules').add({
+            name,
+            keyword: document.getElementById('mod-keyword').value.trim(),
+            lectures: selected,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('✅ تم حفظ الموديول في قسم التجميعات بنجاح!');
+        document.getElementById('mod-action-area').style.display = 'none';
+    }
+
+    function generateComboLinkDirectly() {
+        const name = document.getElementById('mod-name').value.trim() || 'اختبار شامل';
+        const selected = getSelectedModuleLectures();
+        if (selected.length === 0) return alert('حدد محاضرة واحدة على الأقل.');
+        const url = new URL('index.html', window.location.href);
+        url.searchParams.set('combo', selected.map(s => s.id).join(','));
+        url.searchParams.set('title', name);
+        const out = document.getElementById('combo-direct-url');
+        out.style.display = 'block';
+        out.value = url.href;
+        copyText(url.href);
+    }
+
+    function loadAdminModulesList() {
+        db.collection('modules').orderBy('createdAt', 'desc').onSnapshot(snap => {
+            const area = document.getElementById('admin-modules-render');
+            if (!area) return;
+            if (snap.empty) {
+                area.innerHTML = `<p style="color:var(--text-muted);">لا توجد موديولات محفوظة حالياً.</p>`;
+                return;
+            }
+            area.innerHTML = '';
+            snap.forEach(doc => {
+                const d = doc.data();
+                const row = document.createElement('div');
+                row.className = 'static-section-box';
+                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:0;';
+                row.innerHTML = `
+                    <span>📦 <b>${escapeHTML(d.name)}</b> <small style="color:var(--primary); font-weight:800;">(${(d.lectures || []).length} محاضرة)</small></span>
+                    <button type="button" class="btn-chip" style="color:var(--error);" onclick="if(confirm('حذف هذا الموديول؟')) db.collection('modules').doc('${doc.id}').delete()">حذف 🗑️</button>
+                `;
+                area.appendChild(row);
+            });
+        });
+    }
+
+    // ==========================================================================
+    // 5. الإحصائيات الدقيقة وتحليلات صعوبة الأسئلة
+    // ==========================================================================
+    async function loadLiveStats() {
+        const vDoc = await db.collection('analytics').doc('visits_stats').get();
+        const vData = vDoc.exists ? vDoc.data() : {};
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayCount = vData.days?.[todayStr]?.total || 0;
+        document.getElementById('live-visits-counter').innerText = (vData.total_visits || 0).toLocaleString('en-US');
+        document.getElementById('today-visits-badge').innerText = `زيارات اليوم: ${todayCount}`;
+
+        const monthsData = vData.months || {};
+        const daysData = vData.days || {};
+        const accDiv = document.getElementById('visits-history-accordion');
+        accDiv.innerHTML = Object.keys(monthsData).sort().reverse().map(m => {
+            const daysInM = Object.keys(daysData).filter(d => d.startsWith(m)).sort().reverse();
+            return `
+                <details class="static-section-box" style="margin-bottom:8px;">
+                    <summary style="cursor:pointer; font-weight:900;">📆 شهر ${escapeHTML(m)} — (${monthsData[m].total || 0} زيارة)</summary>
+                    <div style="margin-top:8px; display:flex; flex-direction:column; gap:5px;">
+                        ${daysInM.map(d => `
+                            <div style="padding:6px 10px; background:var(--surface); border-radius:6px; border:1px solid var(--border); font-size:0.84rem;">
+                                <b>${escapeHTML(d)}:</b> ${daysData[d].total || 0} زيارة
+                            </div>
+                        `).join('')}
+                    </div>
+                </details>
+            `;
+        }).join('') || '<p style="color:var(--text-muted);">لا توجد سجلات زيارات مفصلة بعد.</p>';
+
+        const gStats = await db.collection('analytics').doc('global_stats').get();
+        document.getElementById('global-q-solved').innerText = (gStats.data()?.total_solved_questions || 0).toLocaleString('en-US');
+
+        const gDoc = await db.collection('analytics').doc('global').get();
+        if (gDoc.exists && gDoc.data().total_questions !== undefined) {
+            document.getElementById('admin-q-counter').innerText = gDoc.data().total_questions.toLocaleString('en-US');
+        }
+
+        const snap = await db.collection('lectures').orderBy('views', 'desc').limit(30).get();
+        const tbody = document.getElementById('lectures-data-table');
+        tbody.innerHTML = '';
+
+        snap.forEach(doc => {
+            const d = doc.data();
+            const avg = d.subs > 0 ? Math.round(d.avg_score / d.subs) : 0;
+            const link = getStudentUrl(doc.id);
+
+            const itemStats = d.item_stats || {};
+            let hardCount = 0;
+            Object.keys(itemStats).forEach(k => {
+                const ok = itemStats[k].ok || 0;
+                const err = itemStats[k].err || 0;
+                if (ok + err >= 4 && (ok / (ok + err)) < 0.25) hardCount++;
+            });
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><b>${escapeHTML(d.title || doc.id)}</b><br><small style="color:var(--text-muted); font-family:monospace;">[${escapeHTML(doc.id)}]</small></td>
+                <td style="font-weight:900; color:var(--primary);">${d.views || 0}</td>
+                <td><b>${d.subs || 0}</b> <small style="color:var(--text-muted);">(كامل:${d.solved_all || 0} | أجزاء:${d.solved_custom || 0})</small></td>
+                <td><span class="status-pill">${avg}%</span></td>
+                <td>
+                    <button type="button" class="btn-chip" style="${hardCount > 0 ? 'border-color:var(--error); color:var(--error);' : ''}" onclick="inspectLectureItemDifficulty('${escapeHTML(doc.id)}')">
+                        🔬 ${hardCount > 0 ? `⚠️ ${hardCount} سؤال حرج` : 'سجل الصعوبة'}
+                    </button>
+                </td>
+                <td><button type="button" class="btn-chip" onclick="copyText('${escapeHTML(link)}')">نسخ 🔗</button></td>
+                <td><button type="button" class="btn-chip" style="color:var(--error);" onclick="softDeleteLecture('${escapeHTML(doc.id)}')">نقل للسلة 🗑️</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function inspectLectureItemDifficulty(lecId) {
+        const doc = await db.collection('lectures').doc(lecId).get();
+        if (!doc.exists) return;
+        const d = doc.data();
+        const qs = d.questions || [];
+        const stats = d.item_stats || {};
+
+        document.getElementById('diff-modal-title').innerText = `🔬 تحليل صعوبة الأسئلة: ${d.title || lecId}`;
+        const body = document.getElementById('diff-modal-body');
+
+        const rows = qs.map((q, idx) => {
+            const st = stats[`q_${idx}`] || { ok: 0, err: 0 };
+            const total = st.ok + st.err;
+            const pct = total > 0 ? Math.round((st.ok / total) * 100) : null;
+            return { idx, q, ok: st.ok, err: st.err, total, pct };
+        }).sort((a, b) => (a.pct ?? 101) - (b.pct ?? 101));
+
+        body.innerHTML = rows.map(r => `
+            <div class="${(r.pct !== null && r.pct < 25 && r.total >= 3) ? 'dynamic-section-box' : 'static-section-box'}" style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:800; margin-bottom:4px;">
+                    <span>سؤال #${r.idx + 1} ${r.pct !== null && r.pct < 25 && r.total >= 3 ? '⚠️ (نسبة خطأ مرتفعة جداً - راجع مفتاح الإجابة!)' : ''}</span>
+                    <span>نسبة الإجابة الصحيحة: <b>${r.pct !== null ? r.pct + '%' : 'لم يُحل بعد'}</b> (صح: ${r.ok} | خطأ: ${r.err})</span>
+                </div>
+                <div style="direction:ltr; text-align:left; font-size:0.88rem; font-weight:700;">${escapeHTML(stripHTML(r.q.q))}</div>
+                <div style="direction:ltr; text-align:left; font-size:0.82rem; color:var(--success); margin-top:4px;">Key Answer: <b>${escapeHTML(r.q.a)}</b></div>
+            </div>
+        `).join('');
+
+        document.getElementById('modal-item-difficulty').style.display = 'flex';
+    }
+
+    // ==========================================================================
+    // 6. البلاغات الموحدة + مطابقة الأسئلة الدقيقة + اعتماد مساهمات الطلاب
+    // ==========================================================================
+    async function loadUnifiedComplaints() {
+        const cont = document.getElementById('complaints-unified-list');
+        cont.innerHTML = `<p style="text-align:center;">⏳ جاري جلب البلاغات...</p>`;
+        try {
+            const snap = await db.collection('complaints').limit(60).get();
+            if (snap.empty) {
+                cont.innerHTML = `<p style="text-align:center; color:var(--success); font-weight:800;">🎉 صندوق البلاغات نظيف تماماً!</p>`;
+                return;
+            }
+            const items = [];
+            snap.forEach(doc => {
+                const d = doc.data();
+                const ts = d.timestamp?.toMillis?.() || d.time?.toMillis?.() || 0;
+                items.push({ id: doc.id, ts, ...d });
+            });
+            items.sort((a, b) => b.ts - a.ts);
+
+            cont.innerHTML = '';
+            items.forEach(item => {
+                const dateStr = item.ts ? new Date(item.ts).toLocaleString('ar-EG') : 'الآن';
+                const lecId = item.lectureId || item.lec || 'عام';
+                const qText = item.questionText || '';
+                const desc = item.issueDescription || item.text || '';
+                const isQuestionReport = Boolean(item.questionText && item.questionText !== 'رسالة / اقتراح عام');
+
+                const box = document.createElement('div');
+                box.className = isQuestionReport ? 'dynamic-section-box' : 'static-section-box';
+                box.style.marginBottom = '0';
+                box.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; font-size:0.78rem; margin-bottom:6px;">
+                        <span class="status-pill">${escapeHTML(lecId)}</span>
+                        <span style="color:var(--text-muted);">🕒 ${escapeHTML(dateStr)}</span>
+                    </div>
+                    ${isQuestionReport ? `<div style="direction:ltr; text-align:left; font-size:0.86rem; background:var(--surface); padding:8px; border-radius:6px; margin-bottom:8px;"><b>Q:</b> ${escapeHTML(qText)}</div>` : ''}
+                    <div style="font-weight:800; margin-bottom:10px; font-size:0.9rem;">📝 ${escapeHTML(desc)}</div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${isQuestionReport ? `
+                            <button type="button" class="btn-chip" style="background:var(--primary); color:#fff;" onclick="openQuestionEditorFromReport('${escapeHTML(item.id)}', '${escapeHTML(lecId)}', ${item.questionIndex ?? -1})">✏️ تعديل السؤال</button>
+                            <button type="button" class="btn-chip" style="background:var(--error); color:#fff;" onclick="deleteQuestionFromReport('${escapeHTML(item.id)}', '${escapeHTML(lecId)}', ${item.questionIndex ?? -1})">🗑️ حذف السؤال من المحاضرة</button>
+                        ` : ''}
+                        <button type="button" class="btn-chip" onclick="resolveComplaintDoc('${escapeHTML(item.id)}', this)">✓ تمت المراجعة (حذف البلاغ)</button>
+                    </div>
+                `;
+                box.dataset.qtext = qText;
+                cont.appendChild(box);
+            });
+        } catch (e) {
+            cont.innerHTML = `<p style="color:var(--error);">تعذر جلب البلاغات.</p>`;
+        }
+    }
+
+    async function findQuestionInLectureDB(lecId, qIdx, rawReportedText) {
+        const doc = await db.collection('lectures').doc(lecId).get();
+        if (!doc.exists) return null;
+        const data = doc.data();
+        const qs = data.questions || [];
+
+        if (qIdx >= 0 && qIdx < qs.length) {
+            return { docId: doc.id, docData: data, qIndex: qIdx, qObj: qs[qIdx] };
+        }
+
+        const cleanRep = stripHTML(rawReportedText).toLowerCase();
+        const foundIdx = qs.findIndex(q => {
+            const cleanDb = stripHTML(q.q).toLowerCase();
+            return cleanDb === cleanRep || cleanDb.includes(cleanRep) || cleanRep.includes(cleanDb);
+        });
+        if (foundIdx !== -1) {
+            return { docId: doc.id, docData: data, qIndex: foundIdx, qObj: qs[foundIdx] };
+        }
+        return null;
+    }
+
+    async function openQuestionEditorFromReport(reportId, lecId, qIdx) {
+        const btnBox = event.target.closest('div[data-qtext]');
+        const qText = btnBox ? btnBox.dataset.qtext : '';
+        const found = await findQuestionInLectureDB(lecId, qIdx, qText);
+        if (!found) return alert('❌ لم يتم العثور على هذا السؤال في المحاضرة المحددة.');
+
+        document.getElementById('edit-q-modal-title').innerText = `✏️ تعديل السؤال #${found.qIndex + 1} (${found.docId})`;
+        document.getElementById('edit-q-text').value = found.qObj.q || '';
+        document.getElementById('edit-q-opts').value = (found.qObj.options || []).join('\n');
+        document.getElementById('edit-q-ans').value = found.qObj.a || '';
+        document.getElementById('edit-q-exp').value = found.qObj.d || '';
+        document.getElementById('modal-edit-question').style.display = 'flex';
+
+        document.getElementById('btn-save-edited-q').onclick = async () => {
+            const freshDoc = await db.collection('lectures').doc(found.docId).get();
+            const freshQs = freshDoc.data().questions || [];
+            freshQs[found.qIndex] = {
+                ...freshQs[found.qIndex],
+                q: document.getElementById('edit-q-text').value,
+                options: document.getElementById('edit-q-opts').value.split('\n').map(s => s.trim()).filter(Boolean),
+                a: document.getElementById('edit-q-ans').value.trim(),
+                d: document.getElementById('edit-q-exp').value
+            };
+            await db.collection('lectures').doc(found.docId).update({ questions: freshQs });
+            await db.collection('complaints').doc(reportId).delete();
+            document.getElementById('modal-edit-question').style.display = 'none';
+            showToast('✅ تم تعديل السؤال وحذف البلاغ بنجاح!');
+            loadUnifiedComplaints();
+        };
+    }
+
+    async function deleteQuestionFromReport(reportId, lecId, qIdx) {
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا السؤال نهائياً من المحاضرة؟')) return;
+        const btnBox = event.target.closest('div[data-qtext]');
+        const qText = btnBox ? btnBox.dataset.qtext : '';
+        const found = await findQuestionInLectureDB(lecId, qIdx, qText);
+        if (found) {
+            found.docData.questions.splice(found.qIndex, 1);
+            await db.collection('lectures').doc(found.docId).update({ questions: found.docData.questions });
+        }
+        await db.collection('complaints').doc(reportId).delete();
+        showToast('✅ تم حذف السؤال والبلاغ!');
+        loadUnifiedComplaints();
+    }
+
+    async function resolveComplaintDoc(id, btn) {
+        await db.collection('complaints').doc(id).delete();
+        btn.closest('div[data-qtext]')?.remove();
+    }
+
+    async function loadStudentContributions() {
+        const list = document.getElementById('contributions-list');
+        list.innerHTML = `<p style="text-align:center;">⏳ جاري جلب المساهمات...</p>`;
+        try {
+            const snap = await db.collection('user_contributions').orderBy('timestamp', 'desc').limit(40).get();
+            if (snap.empty) {
+                list.innerHTML = `<p style="text-align:center; color:var(--success); font-weight:800;">✨ لا توجد مساهمات بانتظار المراجعة.</p>`;
+                return;
+            }
+            list.innerHTML = '';
+            snap.forEach(doc => {
+                const d = doc.data();
+                const box = document.createElement('div');
+                box.className = 'static-section-box';
+                box.style.marginBottom = '0';
+                box.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.8rem;">
+                        <span><b>👤 ${escapeHTML(d.contributorName)}</b> (${escapeHTML(d.year)}) — <span class="status-pill">${escapeHTML(d.module)}</span></span>
+                        <b style="color:var(--accent); font-family:monospace;">ID: ${escapeHTML(d.lectureId)}</b>
+                    </div>
+                    <div style="background:var(--surface); padding:8px; border-radius:6px; direction:ltr; text-align:left; font-size:0.84rem; white-space:pre-wrap; margin-bottom:6px;">${escapeHTML(d.questionsText)}</div>
+                    <div style="background:var(--surface); padding:8px; border-radius:6px; direction:ltr; text-align:left; font-size:0.84rem; white-space:pre-wrap; margin-bottom:10px; border-left:3px solid var(--success);">${escapeHTML(d.answersText)}</div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button type="button" class="btn-chip" style="background:var(--success); color:#fff;" onclick="sendContributionToUnifiedUploader('${escapeHTML(doc.id)}')">⚡ تحويل للمنصة الموحدة للاعتماد</button>
+                        <button type="button" class="btn-chip" onclick="copyText('${escapeHTML(d.lectureId)}')">📋 نسخ ID</button>
+                        <button type="button" class="btn-chip" style="color:var(--error);" onclick="if(confirm('حذف المساهمة؟')) db.collection('user_contributions').doc('${escapeHTML(doc.id)}').delete().then(loadStudentContributions)">🗑️ حذف</button>
+                    </div>
+                `;
+                box.dataset.contr = JSON.stringify({
+                    title: `${d.module} - مساهمة ${d.contributorName}`,
+                    module: d.module,
+                    lectureId: d.lectureId,
+                    questionsText: d.questionsText,
+                    answersText: d.answersText
+                });
+                list.appendChild(box);
+            });
+        } catch (e) {
+            list.innerHTML = `<p style="color:var(--error);">تعذر جلب المساهمات.</p>`;
+        }
+    }
+
+    function sendContributionToUnifiedUploader(docId) {
+        const box = event.target.closest('.static-section-box');
+        if (!box || !box.dataset.contr) return;
+        const c = JSON.parse(box.dataset.contr);
+        switchAdminTab('upload');
+        document.querySelector('input[name="quiz_type"][value="mcq"]').checked = true;
+        toggleUnifiedUI();
+        document.getElementById('unified-id').value = c.lectureId || '';
+        document.getElementById('unified-module-tag').value = c.module || '';
+        document.getElementById('unified-text-input').value = `${c.title}\n${c.questionsText}\n\n/* الإجابات المرفقة من الطالب للمراجعة:\n${c.answersText}\n*/`;
+        previewAdminDecodedId(c.lectureId || '');
+        showToast('⚡ تم نقل المساهمة ومعرفها للمنصة الموحدة للمراجعة والرفع!');
+    }
+
+    // ==========================================================================
+    // 7. مركز الإشعارات + مركز تحكم MEDCORE AI + فك الحظر عن الطلاب المخالفين
+    // ==========================================================================
+    let editingNotifKey = null;
+    let notifAdminBound = false;
+
+    function initNotificationsAdmin() {
+        if (notifAdminBound) return;
+        notifAdminBound = true;
+        rtdb.ref('notifications').limitToLast(15).on('value', snap => {
+            const list = document.getElementById('admin-notif-history');
+            const arr = [];
+            snap.forEach(ch => arr.push({ key: ch.key, ...ch.val() }));
+            arr.reverse();
+            list.innerHTML = arr.map(item => {
+                const s = item.stats || {};
+                return `
+                    <div class="static-section-box" style="margin-bottom:0;">
+                        <div style="font-weight:800; font-size:0.88rem; margin-bottom:6px; white-space:pre-wrap;">${escapeHTML(item.message)}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem;">
+                            <span>📩 استلم: <b>${s.received || 0}</b> | 👀 شاهد: <b>${s.viewed || 0}</b> | 🔗 نقر: <b>${s.clicked || 0}</b></span>
+                            <div style="display:flex; gap:5px;">
+                                <button type="button" class="btn-chip" onclick="startEditNotif('${escapeHTML(item.key)}')">✏️</button>
+                                <button type="button" class="btn-chip" style="color:var(--error);" onclick="if(confirm('حذف الإشعار؟')) rtdb.ref('notifications/${escapeHTML(item.key)}').remove()">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p style="color:var(--text-muted);">لا توجد إشعارات منشورة.</p>';
+        });
+    }
+
+    function publishNotification() {
+        const msg = document.getElementById('notif-text').value.trim();
+        const url = document.getElementById('notif-url').value.trim();
+        if (!msg) return alert('اكتب نص الإشعار أولاً.');
+        if (url && !/^https?:\/\//i.test(url)) return alert('الرابط يجب أن يبدأ بـ https:// أو http://');
+
+        if (editingNotifKey) {
+            rtdb.ref('notifications/' + editingNotifKey).update({ message: msg, link: url }).then(() => {
+                showToast('✅ تم تعديل الإشعار!');
+                resetNotifForm();
+            });
+        } else {
+            rtdb.ref('notifications').push({
+                message: msg,
+                link: url,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                stats: { received: 0, viewed: 0, clicked: 0 }
+            }).then(() => {
+                showToast('✅ تم نشر الإشعار لجميع الطلاب!');
+                resetNotifForm();
+            });
+        }
+    }
+
+    function startEditNotif(key) {
+        rtdb.ref('notifications/' + key).once('value').then(snap => {
+            if (!snap.exists()) return;
+            editingNotifKey = key;
+            document.getElementById('notif-text').value = snap.val().message || '';
+            document.getElementById('notif-url').value = snap.val().link || '';
+            document.getElementById('send-notif-btn').innerText = '💾 حفظ التعديل';
+            document.getElementById('cancel-notif-edit').style.display = 'inline-flex';
+        });
+    }
+
+    function resetNotifForm() {
+        editingNotifKey = null;
+        document.getElementById('notif-text').value = '';
+        document.getElementById('notif-url').value = '';
+        document.getElementById('send-notif-btn').innerText = '📡 نشر الإشعار الآن';
+        document.getElementById('cancel-notif-edit').style.display = 'none';
+    }
+
+    let aiAdminBound = false;
+    function initAiControlCenter() {
+        if (aiAdminBound) return;
+        aiAdminBound = true;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        rtdb.ref('global_stats/' + todayStr + '/total_questions').on('value', snap => {
+            document.getElementById('stats-daily-total').innerText = snap.val() || 0;
+        });
+
+        rtdb.ref('ai_banned_users').on('value', snap => {
+            const banList = document.getElementById('ai-banned-users-list');
+            if (!banList) return;
+            const rows = [];
+            snap.forEach(ch => {
+                const d = ch.val();
+                if (!d || !d.banned) return;
+                const msgs = Array.isArray(d.offendingMessages) ? d.offendingMessages.join(' | ') : '';
+                const dateStr = d.bannedAt ? new Date(d.bannedAt).toLocaleString('ar-EG') : '';
+                rows.push(`
+                    <div class="dynamic-section-box" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <div>
+                            <b>🔒 جهاز: <span style="font-family:monospace; color:var(--primary);">${escapeHTML(d.deviceId || ch.key)}</span></b>
+                            <small style="color:var(--text-muted); margin-right:6px;">${escapeHTML(dateStr)}</small>
+                            <div style="font-size:0.8rem; color:var(--error); margin-top:3px;">الرسائل المخالفة: ${escapeHTML(msgs)}</div>
+                        </div>
+                        <button type="button" class="btn-nav btn-green" style="padding:7px 14px; font-size:0.8rem;" onclick="unbanStudentAiChat('${escapeHTML(ch.key)}')">
+                            🔓 فك الحظر وتصفير الإنذارات
+                        </button>
+                    </div>
+                `);
+            });
+            banList.innerHTML = rows.join('') || '<p style="color:var(--success); font-weight:800; margin:6px 0;">✨ لا يوجد أي طلاب محظورين من شات الذكاء الاصطناعي حالياً.</p>';
+        });
+
+        rtdb.ref('promo_codes').on('value', snap => {
+            const list = document.getElementById('active-promos-list');
+            const now = Date.now();
+            const rows = [];
+            snap.forEach(ch => {
+                const d = ch.val();
+                const deadline = (d.createdAt || 0) + ((d.activationWindowMinutes || 0) * 60000);
+                const expired = d.createdAt && d.activationWindowMinutes && now > deadline;
+                rows.push(`
+                    <div class="static-section-box" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0;">
+                        <div>
+                            <b dir="ltr">🎁 ${escapeHTML(ch.key)}</b>
+                            <span class="status-pill" style="font-size:0.72rem;">${expired ? 'انتهت مهلة التفعيل' : `مفعل (${d.activationCount || 0} مرة)`}</span>
+                            <div style="font-size:0.76rem; color:var(--text-muted);">صالح لـ ${d.durationHours || 168} ساعة</div>
+                        </div>
+                        <button type="button" class="btn-chip" style="color:var(--error);" onclick="if(confirm('حذف الكود؟')) rtdb.ref('promo_codes/${escapeHTML(ch.key)}').remove()">🗑️</button>
+                    </div>
+                `);
+            });
+            list.innerHTML = rows.join('') || '<p style="color:var(--text-muted); font-size:0.84rem;">لا توجد أكواد تفعيل حالياً.</p>';
+        });
+    }
+
+    function unbanStudentAiChat(devId) {
+        rtdb.ref('ai_banned_users/' + devId).remove().then(() => {
+            showToast('✅ تم فك الحظر عن الطالب وتصفير إنذاراته فوراً!');
+        });
+    }
+
+    function clearSharedAiCache() {
+        if (!confirm('هل تريد مسح كاش الشروحات المحفوظة في RTDB لإعادة توليدها من جديد؟')) return;
+        rtdb.ref('ai_explanations_cache').remove().then(() => {
+            showToast('✅ تم تفريغ كاش شروحات الذكاء الاصطناعي بنجاح!');
+        });
+    }
+
+    function generateUniquePromoCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = 'MED-';
+        for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        document.getElementById('promo-code-text').value = code;
+    }
+
+    async function createPromoCode() {
+        const code = document.getElementById('promo-code-text').value.trim();
+        const hours = parseInt(document.getElementById('promo-hours').value, 10) || 168;
+        const windowMins = parseInt(document.getElementById('promo-window').value, 10) || 60;
+
+        if (!code) return alert('قم بتوليد أو كتابة الكود أولاً.');
+        await rtdb.ref('historical_codes/' + code).set(true);
+        await rtdb.ref('promo_codes/' + code).set({
+            durationHours: hours,
+            activationWindowMinutes: windowMins,
+            activationCount: 0,
+            active: true,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        showToast('✅ تم حفظ ونشر كود التفعيل!');
+        document.getElementById('promo-code-text').value = '';
+    }
+
+    // ==========================================================================
+    // 8. النسخ الاحتياطي، سلة المحذوفات الآمنة، وإدارة التحديثات السابقة
+    // ==========================================================================
+    async function softDeleteLecture(id) {
+        if (!confirm(`⚠️ هل تريد نقل المحاضرة (${id}) إلى سلة المحذوفات؟ يمكنك استعادتها لاحقاً من تبويب النسخ الاحتياطي.`)) return;
+        const doc = await db.collection('lectures').doc(id).get();
+        if (doc.exists) {
+            await db.collection('deleted_lectures').doc(id).set({
+                ...doc.data(),
+                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await db.collection('lectures').doc(id).delete();
+            await removeCatalogEntry(id);
+            showToast('♻️ تم نقل المحاضرة إلى سلة المحذوفات.');
+            loadLiveStats();
+        }
+    }
+
+    async function loadDeletedLecturesTrash() {
+        const box = document.getElementById('trash-lectures-list');
+        box.style.display = 'block';
+        box.innerHTML = '⏳ جاري فحص سلة المحذوفات...';
+        const snap = await db.collection('deleted_lectures').get();
+        if (snap.empty) {
+            box.innerHTML = '<b style="color:var(--success);">✨ سلة المحذوفات فارغة.</b>';
+            return;
+        }
+        const rows = [];
+        snap.forEach(doc => {
+            const d = doc.data();
+            rows.push(`
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--border);">
+                    <span><b>${escapeHTML(d.title || doc.id)}</b> [${escapeHTML(doc.id)}]</span>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn-chip" style="color:var(--success);" onclick="restoreDeletedLecture('${escapeHTML(doc.id)}')">♻️ استعادة</button>
+                        <button type="button" class="btn-chip" style="color:var(--error);" onclick="if(confirm('حذف نهائي لا رجعة فيه؟')) db.collection('deleted_lectures').doc('${escapeHTML(doc.id)}').delete().then(loadDeletedLecturesTrash)">🗑️ حذف نهائي</button>
+                    </div>
+                </div>
+            `);
+        });
+        box.innerHTML = rows.join('');
+    }
+
+    async function restoreDeletedLecture(id) {
+        const doc = await db.collection('deleted_lectures').doc(id).get();
+        if (!doc.exists) return;
+        const data = doc.data();
+        delete data.deletedAt;
+        await db.collection('lectures').doc(id).set(data);
+        await db.collection('deleted_lectures').doc(id).delete();
+        const qs = Array.isArray(data.questions) ? data.questions : [];
+        const uniqueParts = Array.from(new Set(qs.map(q => q.p).filter(Boolean))).slice(0, 8).join(' | ');
+        const dec = decodeMedcoreLectureId(id);
+        await upsertCatalogEntry({
+            id,
+            title: data.title || id,
+            parts: uniqueParts,
+            module: data.module || dec?.moduleCode || '',
+            decodedInfo: dec?.summary || '',
+            qCount: qs.length
+        });
+        showToast('✅ تمت استعادة المحاضرة وتحديث الفهرس بنجاح!');
+        loadDeletedLecturesTrash();
+    }
+
+    async function downloadFullDatabaseBackup() {
+        const btn = document.getElementById('btn-export-backup');
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري تجميع النسخة الاحتياطية...';
+        try {
+            const [lecSnap, modSnap, ospeSnap] = await Promise.all([
+                db.collection('lectures').get(),
+                db.collection('modules').get(),
+                db.collection('ospe_labs').get()
+            ]);
+            const backup = {
+                exportedAt: new Date().toISOString(),
+                lectures: {},
+                modules: {},
+                ospe_labs: {}
+            };
+            lecSnap.forEach(d => backup.lectures[d.id] = d.data());
+            modSnap.forEach(d => backup.modules[d.id] = d.data());
+            ospeSnap.forEach(d => backup.ospe_labs[d.id] = d.data());
+
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `MEDCORE_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showToast('✅ تم تنزيل النسخة الاحتياطية الكاملة بنجاح!');
+        } catch (e) {
+            alert('تعذر تصدير النسخة الاحتياطية: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '📥 تحميل نسخة احتياطية كاملة (JSON Backup)';
+        }
+    }
+
+    async function loadActiveUpdates() {
+        const list = document.getElementById('active-updates-list');
+        list.innerHTML = '⏳ جاري جلب مستندات live_updates...';
+        const snap = await db.collection('live_updates').orderBy('time', 'desc').get();
+        if (snap.empty) {
+            list.innerHTML = '<p style="color:var(--success); font-weight:800;">✅ لا توجد تحديثات حية في القاعدة (أفضل أداء وأقل استهلاك قراءات).</p>';
+            return;
+        }
+        const rows = [];
+        snap.forEach(doc => {
+            const d = doc.data();
+            const isActive = d.active !== false && !(d.target || '').endsWith('_disabled');
+            rows.push(`
+                <div class="static-section-box" style="margin-bottom:0; opacity:${isActive ? '1' : '0.6'};">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>Target: <b>${escapeHTML(d.target)}</b> | Type: <b>${escapeHTML(d.type)}</b> | الحالة: ${isActive ? '🟢 مفعل' : '🔴 معطل'}</span>
+                        <div style="display:flex; gap:6px;">
+                            <button type="button" class="btn-chip" onclick="toggleOtaDoc('${escapeHTML(doc.id)}', '${escapeHTML(d.target)}', ${isActive})">${isActive ? 'تعطيل ⏸️' : 'تفعيل ▶️'}</button>
+                            <button type="button" class="btn-chip" style="color:var(--error);" onclick="if(confirm('حذف هذا التحديث من القاعدة؟')) db.collection('live_updates').doc('${escapeHTML(doc.id)}').delete().then(loadActiveUpdates)">حذف 🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+        list.innerHTML = rows.join('');
+    }
+
+    async function toggleOtaDoc(id, currentTarget, isActive) {
+        const baseTarget = currentTarget.replace('_disabled', '');
+        await db.collection('live_updates').doc(id).update({
+            active: !isActive,
+            target: isActive ? `${baseTarget}_disabled` : baseTarget
+        });
+        loadActiveUpdates();
+    }
+    </script>
+</body>
+</html>
