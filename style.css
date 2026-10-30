@@ -1,7 +1,7 @@
 /* ==========================================================================
-   MEDCORE / MedQuiz — Master Unified & Mobile-First Stylesheet (v2026.7)
+   MEDCORE / MedQuiz — Master Unified & Mobile-First Stylesheet (v2026.9)
    الهوية الأكاديمية الرسمية: Navy (#162238) / Maroon (#7b1113) / Gold (#c5a059)
-   يدعم: الهاتف والكمبيوتر، الوضعين الليلي والنهاري، التبديل الكامل RTL/LTR، وشات MEDCORE AI
+   يدعم: الهاتف والكمبيوتر، الوضعين الليلي والنهاري، التبديل الكامل RTL/LTR، وشات MEDCORE AI المباشر
    ========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&family=Inter:wght@500;600;700;800;900&display=swap');
 
@@ -900,7 +900,7 @@ body.light-theme .q-progress-header {
 }
 
 /* ==========================================================================
-   7. لوحة MEDCORE AI والشات التفاعلي المدمج تحت السؤال
+   7. لوحة MEDCORE AI، شريط اختيار الدقة الثلاثي، ومؤشر البث اللحظي (Streaming)
    ========================================================================== */
 .medcore-ai-panel {
     margin-top: 12px;
@@ -932,6 +932,83 @@ body.light-theme .q-progress-header {
     font-weight: 900;
     direction: ltr;
     display: inline-block;
+}
+
+/* شريط اختيار وضع الاستجابة (Fast / Accurate Brainstorming 2 / Admin Ultra Precision) */
+.ai-mode-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 4px;
+    margin: 6px 0;
+}
+
+.ai-mode-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+.ai-mode-btn:hover {
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.ai-mode-btn.active-fast {
+    background: rgba(16, 185, 129, 0.18);
+    color: var(--success);
+    border-color: var(--success);
+    font-weight: 900;
+}
+
+.ai-mode-btn.active-accurate {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+    border-color: #3b82f6;
+    font-weight: 900;
+}
+
+body.light-theme .ai-mode-btn.active-accurate {
+    color: #1d4ed8;
+}
+
+.ai-mode-btn.active-ultra {
+    background: linear-gradient(135deg, var(--maroon), #4c080a);
+    color: var(--gold-bright);
+    border-color: var(--gold);
+    font-weight: 900;
+    box-shadow: 0 2px 8px rgba(197, 160, 89, 0.35);
+}
+
+/* مؤشر الكتابة المباشر (Gemini Streaming Cursor) */
+.ai-streaming-cursor::after {
+    content: ' ▍';
+    color: var(--gold-bright);
+    font-weight: 900;
+    animation: blinkAiCursor 0.65s infinite;
+}
+
+body.light-theme .ai-streaming-cursor::after {
+    color: var(--maroon);
+}
+
+@keyframes blinkAiCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
 }
 
 .ai-quick-prompts-row {
@@ -1192,6 +1269,17 @@ th {
     }
     .part-tag {
         max-width: 48%;
+        font-size: 0.72rem;
+    }
+    .ai-mode-selector {
+        border-radius: 10px;
+        width: 100%;
+        justify-content: center;
+    }
+    .ai-mode-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 8px;
         font-size: 0.72rem;
     }
 }
