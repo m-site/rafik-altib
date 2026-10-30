@@ -135,7 +135,7 @@
             <span class="prominent-complaint-cta" data-i18n="prominentCompCta">تواصل معنا ✍️</span>
         </button>
 
-        <!-- شبكة الأزرار السريعة (4 أزرار أساسية غير مكررة مع القيم المعملية أو المختصرات) -->
+        <!-- شبكة الأزرار السريعة -->
         <div class="student-quick-grid" id="quick-dashboard">
             <button type="button" class="dash-style-btn" onclick="window.location.href='?modules=true'">
                 📚 <span data-i18n="quickModules">الموديولات الشاملة</span>
@@ -158,7 +158,7 @@
             <p id="loading-sub" style="color:var(--text-muted); font-size:0.88rem; margin-top:6px;" data-i18n="loadingSub">يرجى الانتظار للحظات يا دكتور</p>
         </div>
 
-        <!-- أ) الشاشة الرئيسية ومحرك البحث الصاروخي الذكي (Rocket Fuzzy + ID Decoder + AI Search) -->
+        <!-- أ) الشاشة الرئيسية ومحرك البحث الصاروخي الذكي -->
         <section id="home-view" class="quiz-card" style="display:none;">
             <h2 style="font-weight:900; margin:0 0 8px 0; text-align:center; font-size:1.25rem;" data-i18n="welcomeTitle">أهلاً بك في MEDCORE يا دكتور 👨‍⚕️🩺</h2>
             <p style="text-align:center; font-size:0.84rem; color:var(--text-muted); margin:0 0 14px 0;" data-i18n="welcomeSub">
@@ -172,7 +172,7 @@
                 </div>
 
                 <div style="display:flex; gap:6px;">
-                    <input type="search" id="home-catalog-search" placeholder="ابحث بعنوان المحاضرة أو المادة (مثال: فارما 2 أهلية، جيناتكس 3 حكومي، أناتومي، High yield)..." oninput="onRocketSearchInput()" onkeydown="if(event.key==='Enter') triggerAiSmartCatalogSearch()" style="flex:1; padding:11px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-weight:700;">
+                    <input type="search" id="home-catalog-search" placeholder="ابحث بعنوان المحاضرة أو المادة..." oninput="onRocketSearchInput()" onkeydown="if(event.key==='Enter') triggerAiSmartCatalogSearch()" style="flex:1; padding:11px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-weight:700;">
                     <button type="button" class="btn-nav btn-gold" id="btn-ai-smart-search" onclick="triggerAiSmartCatalogSearch()" title="بحث ذكي بالمعنى عبر الذكاء الاصطناعي" style="padding:10px 14px; white-space:nowrap;">
                         🤖 <span data-i18n="aiSearchBtn">بحث ذكي</span>
                     </button>
@@ -267,7 +267,7 @@
                 </div>
             </div>
 
-            <!-- شريط أدوات الاختبار النشط (خالٍ من تكرار القيم المعملية أو المختصرات) -->
+            <!-- شريط أدوات الاختبار النشط -->
             <div id="active-quiz-toolbar" style="display:none; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); padding:10px 12px; border-radius:var(--radius-md); border:1.5px solid var(--border);">
                 <div style="font-weight:800; font-size:0.86rem; color:var(--gold);" id="toolbar-lec-title"></div>
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -300,7 +300,7 @@
             </div>
         </section>
 
-        <!-- ج) حاوية الأنظمة الفرعية (التجميعات / الشامل / OSPE) -->
+        <!-- ج) حاوية الأنظمة الفرعية -->
         <section id="sub-engine-view" style="display:none;"></section>
 
     </main>
@@ -319,72 +319,58 @@
     </div>
 
     <!-- 6. النوافذ المنبثقة الأساسية -->
-
-    <!-- أ) نافذة الشكاوى والاقتراحات -->
     <div id="modal-comp" class="modal-overlay">
         <div class="modal-card">
             <button type="button" class="close-btn" onclick="closeModal('comp')">✖</button>
             <h3 style="margin-top:0; color:var(--gold);" data-i18n="compModalTitle">📣 صندوق الشكاوى والاقتراحات</h3>
-            <p style="font-size:0.84rem; color:var(--text-muted); margin-top:0;" data-i18n="compModalSub">رسالتك تصل مباشرة لإدارة MEDCORE، يمكنك كتابة أي اقتراح أو ملاحظة علمية:</p>
+            <p style="font-size:0.84rem; color:var(--text-muted); margin-top:0;" data-i18n="compModalSub">رسالتك تصل مباشرة لإدارة MEDCORE:</p>
             <textarea id="comp-msg-box" style="width:100%; height:115px; border-radius:var(--radius-sm); padding:10px; background:var(--surface-elevated); color:var(--text); border:1.5px solid var(--border);" placeholder="اكتب رسالتك أو اقتراحك هنا..."></textarea>
             <button type="button" class="btn-nav btn-gold" style="width:100%; margin-top:10px;" onclick="sendComplaint()"><span data-i18n="sendBtn">إرسال الآن ✅</span></button>
         </div>
     </div>
 
-    <!-- ب) نافذة حالة محركات MEDCORE AI الأربعة -->
     <div id="modal-ai-models-info" class="modal-overlay">
         <div class="modal-card">
             <button type="button" class="close-btn" onclick="closeModal('ai-models-info')">✖</button>
             <h3 style="margin-top:0; color:var(--gold);" data-i18n="aiSysTitle">🤖 محركات MEDCORE AI الذكية</h3>
-            <p style="font-size:0.82rem; color:var(--text-muted);" data-i18n="aiSysSub">يعمل النظام على اختيار المحرك الطبي الأنسب تلقائياً لكل سؤال حسب مستواه العلمي لضمان أعلى دقة وأسرع استجابة:</p>
+            <p style="font-size:0.82rem; color:var(--text-muted);" data-i18n="aiSysSub">يعمل النظام على اختيار المحرك الطبي الأنسب مع توفير وضع البث اللحظي السريع:</p>
 
             <div class="static-section-box" style="margin-bottom:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b dir="ltr">⚡ Medcore Speed Lite 2.5</b>
-                    <span class="status-pill" data-i18n="activeAuto">متاح تلقائياً</span>
+                    <b dir="ltr">⚡ Medcore Speed Lite 2.5 (Fast)</b>
+                    <span class="status-pill" data-i18n="activeAuto">متاح فوراً</span>
                 </div>
-                <small style="color:var(--text-muted);" data-i18n="liteDesc">محرك فائق السرعة للأسئلة المباشرة، والمختصرات الطبية، والمناقشات السريعة.</small>
+                <small style="color:var(--text-muted);" data-i18n="liteDesc">استجابة لحظية في أقل من ثانية للأسئلة المباشرة والمختصرات.</small>
             </div>
 
             <div class="static-section-box" style="margin-bottom:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b dir="ltr">🚀 Medcore Speed 3.5</b>
-                    <span class="status-pill" data-i18n="activeAuto">متاح تلقائياً</span>
+                    <b dir="ltr">🧠 Medcore Brainstorming 2 (Accurate)</b>
+                    <span class="status-pill" data-i18n="activeCases">وضع الدقة العالية</span>
                 </div>
-                <small style="color:var(--text-muted);" data-i18n="speedDesc">يجمع بين السرعة العالية والدقة الأكاديمية في تفكيك أسئلة الاختيار من متعدد واستبعاد البدائل.</small>
-            </div>
-
-            <div class="static-section-box" style="margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b dir="ltr">🧠 Medcore Brainstorming 2</b>
-                    <span class="status-pill" data-i18n="activeCases">نشط للحالات الإكلينيكية</span>
-                </div>
-                <small style="color:var(--text-muted);" data-i18n="brainDesc">مخصص لتحليل الحالات السريرية (Clinical Cases) وربط الأعراض بالتحاليل الطبية.</small>
+                <small style="color:var(--text-muted);" data-i18n="brainDesc">تفكير عمق وتحليل إكلينيكي مفصل للحالات الصعبة مع البث الفوري.</small>
             </div>
 
             <div class="dynamic-section-box" style="margin-bottom:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b dir="ltr">👑 Medcore Ultra</b>
-                    <span id="ultra-status-pill" class="status-pill" style="background:var(--error-light); color:var(--error); border-color:var(--error);" data-i18n="ultraLocked">🔒 غير متاح حالياً للمستخدمين</span>
+                    <b dir="ltr">👑 Medcore Ultra (Admin)</b>
+                    <span id="ultra-status-pill" class="status-pill" style="background:var(--error-light); color:var(--error); border-color:var(--error);" data-i18n="ultraLocked">🔒 غير متاح</span>
                 </div>
-                <small style="color:var(--text-muted);" data-i18n="ultraDesc">الإصدار الأعلى دقة بقدرات الاستنتاج الطبي المتقدم والتشخيص التفريقي الشامل.</small>
+                <small style="color:var(--text-muted);" data-i18n="ultraDesc">الإصدار الأعلى استنتاجاً ودقة مخصص للأدمن فقط.</small>
             </div>
         </div>
     </div>
 
-    <!-- ج) نافذة تفعيل كود إضافي -->
     <div id="modal-ai-promo" class="modal-overlay">
         <div class="modal-card">
             <button type="button" class="close-btn" onclick="closeModal('ai-promo')">✖</button>
             <h3 style="margin-top:0; color:var(--gold);" data-i18n="promoModalTitle">🎁 تفعيل كود باقة MEDCORE AI</h3>
-            <p style="font-size:0.84rem; color:var(--text-muted);" data-i18n="promoModalSub">أدخل كود التفعيل المخصص للدفعة:</p>
             <input type="text" id="student-promo-input" placeholder="MED-XXXXXXXX" style="width:100%; padding:11px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface-elevated); color:var(--text); text-align:center; font-weight:900; direction:ltr; margin-bottom:10px;">
             <button type="button" class="btn-nav btn-gold" style="width:100%;" onclick="activateStudentPromoCode()"><span data-i18n="activateBtn">تفعيل الكود الآن ✨</span></button>
             <div id="promo-status-msg" style="margin-top:10px; font-weight:800; text-align:center; font-size:0.88rem;"></div>
         </div>
     </div>
 
-    <!-- د) نافذة سجل الدرجات -->
     <div id="modal-score" class="modal-overlay">
         <div class="modal-card">
             <button type="button" class="close-btn" onclick="closeModal('score')">✖</button>
@@ -393,17 +379,14 @@
         </div>
     </div>
 
-    <!-- هـ) نافذة بنك الأخطاء الذكي -->
     <div id="modal-errors" class="modal-overlay">
         <div class="modal-card">
             <button type="button" class="close-btn" onclick="closeModal('errors')">✖</button>
             <h3 style="margin-top:0; color:var(--gold);" data-i18n="errorsModalTitle">⚠️ بنك الأخطاء الذكي</h3>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 10px 0;" data-i18n="errorsModalSub">💡 السؤال الذي تجيبه بشكل صحيح مرتين متتاليتين أثناء مراجعة أخطائك يُزال تلقائياً بعد إتقانه.</p>
             <div id="errors-content-list" style="max-height:360px; overflow-y:auto;"></div>
         </div>
     </div>
 
-    <!-- و) نافذة الأسئلة المحفوظة (Landmarks) -->
     <div id="modal-landmarks" class="modal-overlay">
         <div class="modal-card">
             <button type="button" class="close-btn" onclick="closeModal('landmarks')">✖</button>
@@ -412,7 +395,6 @@
         </div>
     </div>
 
-    <!-- ز) نافذة الإشعارات والرسائل -->
     <div id="modal-notifs" class="modal-overlay">
         <div class="modal-card">
             <button type="button" class="close-btn" onclick="closeModal('notifs')">✖</button>
@@ -421,13 +403,12 @@
         </div>
     </div>
 
-    <!-- ح) نافذة مساهمة الطالب برفع أسئلة -->
     <div id="modal-contribute" class="modal-overlay">
         <div class="modal-card" style="max-width:600px;">
             <button type="button" class="close-btn" onclick="closeModal('contribute')">✖</button>
             <h3 style="margin-top:0; color:var(--gold);" data-i18n="contrModalTitle">📤 شارك أسئلتك مع الدفعة باسمك</h3>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-                <input type="text" id="uq-name" placeholder="اسمك (د. أحمد...)" style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border);">
+                <input type="text" id="uq-name" placeholder="اسمك..." style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border);">
                 <select id="uq-year" style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border);">
                     <option value="الفرقة الأولى">الفرقة الأولى / Year 1</option>
                     <option value="الفرقة الثانية">الفرقة الثانية / Year 2</option>
@@ -436,13 +417,12 @@
                     <option value="الفرقة الخامسة">الفرقة الخامسة / Year 5</option>
                 </select>
             </div>
-            <input type="text" id="uq-module" placeholder="الموديول أو الراوند (CNS, Cardio...)" style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:8px;">
+            <input type="text" id="uq-module" placeholder="الموديول (CNS, Cardio...)" style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:8px;">
             <textarea id="uq-qs" rows="3" placeholder="الأسئلة والاختيارات..." style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:8px;"></textarea>
-            <textarea id="uq-ans" rows="2" placeholder="الإجابات الصحيحة والشرح..." style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:10px;"></textarea>
+            <textarea id="uq-ans" rows="2" placeholder="الإجابات والشرح..." style="width:100%; padding:9px; border-radius:var(--radius-sm); background:var(--surface-elevated); color:var(--text); border:1px solid var(--border); margin-bottom:10px;"></textarea>
 
             <div id="uq-result-area" class="dynamic-section-box" style="display:none; text-align:center;">
                 <h4 style="color:var(--success); margin:0 0 6px 0;">🎉 شكراً لمساهمتك يا دكتور!</h4>
-                <p style="font-size:0.82rem; margin:0 0 6px 0;">هذا رابط اختبارك، سيعمل تلقائياً فور مراجعة واعتماد الإدارة:</p>
                 <input type="text" id="uq-link-display" readonly style="width:100%; padding:8px; border-radius:6px; background:var(--surface); color:var(--gold); text-align:center; direction:ltr; border:1px solid var(--gold); margin-bottom:8px; font-weight:800;">
                 <button type="button" class="btn-nav btn-green" style="width:100%;" onclick="navigator.clipboard.writeText(document.getElementById('uq-link-display').value); showToast('تم نسخ الرابط بنجاح ✅');">📋 نسخ الرابط</button>
             </div>
@@ -453,7 +433,7 @@
 
     <script>
     /* ==========================================================================
-       MEDCORE Unified Student Engine (v2026.7 — Smart ID Decoder + Rocket Search)
+       MEDCORE Unified Student Engine (v2026.9 — SSE Streaming + 3-Tier Mode Selector)
        ========================================================================== */
     const firebaseConfig = {
         apiKey: "AIzaSyAElUTnaXitLw35Hb55kQWoe1AdbGO1t8A",
@@ -468,172 +448,70 @@
     const db = firebase.firestore();
     const rtdb = firebase.database();
 
-    // الرابط الرسمي لخادم Cloudflare Worker الخاص بك
     const AI_WORKER_ENDPOINT = "https://medcore-ai-proxy.ma7moud01030382018.workers.dev/";
 
-    // قاموس الترجمة الشامل لواجهة الموقع (عربي / إنجليزي)
     const UI_TRANSLATIONS = {
         ar: {
-            labsBtn: "القيم المعملية",
-            calcBtn: "الحاسبات الطبية",
-            mnemonicBtn: "مختصرات الحفظ",
-            termsBtn: "قاموس المصطلحات الطبية",
-            menuBtn: "القائمة",
-            sidebarTitle: "🩺 قائمة خدمات MEDCORE",
-            complaintsBtn: "الشكاوى والاقتراحات",
-            notifsBtn: "التحديثات والرسائل",
-            newBadge: "جديد",
-            arenaBtn: "ساحة التحدي (Medcore Arena)",
-            modulesBtn: "التجميعات والموديولات الشاملة",
-            errorBankBtn: "بنك أخطائك",
-            scoreHistoryBtn: "سجل درجاتك",
-            aiModelsBtn: "محركات MEDCORE AI",
-            promoBtn: "تفعيل كود باقة إضافية",
-            contributeBtn: "ارفع أسئلة باسمك للدفعة",
-            close: "✖ إغلاق",
+            labsBtn: "القيم المعملية", calcBtn: "الحاسبات الطبية", mnemonicBtn: "مختصرات الحفظ", termsBtn: "قاموس المصطلحات الطبية", menuBtn: "القائمة",
+            sidebarTitle: "🩺 قائمة خدمات MEDCORE", complaintsBtn: "الشكاوى والاقتراحات", notifsBtn: "التحديثات والرسائل", newBadge: "جديد",
+            arenaBtn: "ساحة التحدي (Medcore Arena)", modulesBtn: "التجميعات والموديولات الشاملة", errorBankBtn: "بنك أخطائك", scoreHistoryBtn: "سجل درجاتك",
+            aiModelsBtn: "محركات MEDCORE AI", promoBtn: "تفعيل كود باقة إضافية", contributeBtn: "ارفع أسئلة باسمك للدفعة", close: "✖ إغلاق",
             tgBannerMain: "📢 قناة MEDCORE الرسمية لتجميعات الأسئلة والامتحانات 🎯 اضغط هنا ✨",
-            prominentCompText: "📣 عندك شكوى، ملاحظة علمية، أو اقتراح لتطوير الموقع؟",
-            prominentCompCta: "تواصل معنا ✍️",
-            quickModules: "الموديولات الشاملة",
-            quickArena: "ساحة التحدي",
-            quickErrors: "بنك أخطائك",
-            quickScores: "سجل درجاتك",
-            loadingTitle: "جاري تحضير المادة العلمية...",
-            loadingSub: "يرجى الانتظار للحظات يا دكتور",
+            prominentCompText: "📣 عندك شكوى، ملاحظة علمية، أو اقتراح لتطوير الموقع؟", prominentCompCta: "تواصل معنا ✍️",
+            quickModules: "الموديولات الشاملة", quickArena: "ساحة التحدي", quickErrors: "بنك أخطائك", quickScores: "سجل درجاتك",
+            loadingTitle: "جاري تحضير المادة العلمية...", loadingSub: "يرجى الانتظار للحظات يا دكتور",
             welcomeTitle: "أهلاً بك في MEDCORE يا دكتور 👨‍⚕️🩺",
-            welcomeSub: "💡 حدد أي مصطلح إنجليزي أثناء الحل لترجمته فوراً، واستخدم محرك MEDCORE AI لشرح ومناقشة أي سؤال طبياً.",
+            welcomeSub: "💡 حدد أي مصطلح إنجليزي أثناء الحل لترجمته فوراً، واستخدم محرك MEDCORE AI للبث المباشر.",
             searchLabel: "🔍 ابحث باسم المحاضرة، المادة، الموديول، أو الدفعة (حكومي/أهلية):",
-            searchPlaceholder: "ابحث بعنوان المحاضرة أو المادة (مثال: فارما 2 أهلية، جيناتكس 3 حكومي، أناتومي، High yield)...",
-            aiSearchBtn: "بحث ذكي",
-            browseModulesBtn: "تصفح الموديولات الشاملة",
-            challengeFriendsBtn: "تحدي الأصدقاء في هذه المحاضرة",
-            copyLinkBtn: "نسخ الرابط",
-            resumeNowBtn: "استكمال الاختبار فوراً",
-            startNewBtn: "بدء اختبار جديد",
-            step1Title: "1️⃣ اختر نطاق الاختبار:",
-            scopeAll: "📚 المحاضرة كاملة",
-            scopeErrors: "⚠️ أخطاؤك السابقة في هذه المحاضرة",
-            scopeParts: "🧩 تحديد أجزاء (Parts) معينة",
-            nextBtn: "التالي ➡️",
-            backBtn: "رجوع",
-            step2Title: "2️⃣ عدد الأسئلة المطلوبة:",
-            availableTxt: "المتاح",
-            step3Title: "3️⃣ نظام عرض الإجابات:",
-            modeInstant: "⚡ تصحيح فوري (مع الشرح ومناقشة MEDCORE AI)",
-            modeExam: "📝 نظام امتحان (التصحيح والمراجعة الكاملة في النهاية)",
-            step4Title: "4️⃣ وقت الاختبار:",
-            timeOpen: "🔓 بدون وقت (مفتوح للمذاكرة بتركيز)",
-            timeOfficial: "⏱️ بوقت رسمي (45 ثانية لكل سؤال)",
-            savedBtn: "المحفوظات",
-            finishBtn: "إنهاء",
-            finalResultTitle: "النتيجة النهائية 📊",
-            weakPartsTitle: "⚠️ أجزاء تحتاج مراجعة (أقل من 60%):",
-            shareResultBtn: "مشاركة النتيجة للمنافسة",
-            retryBtn: "إعادة الاختبار",
-            instantDictTitle: "🩺 القاموس والمترجم الطبي الفوري",
-            compModalTitle: "📣 صندوق الشكاوى والاقتراحات",
-            compModalSub: "رسالتك تصل مباشرة لإدارة MEDCORE، يمكنك كتابة أي اقتراح أو ملاحظة علمية:",
-            sendBtn: "إرسال الآن ✅",
-            aiSysTitle: "🤖 محركات MEDCORE AI الذكية",
-            aiSysSub: "يعمل النظام على اختيار المحرك الطبي الأنسب تلقائياً لكل سؤال حسب مستواه العلمي لضمان أعلى دقة وأسرع استجابة:",
-            activeAuto: "متاح تلقائياً",
-            activeCases: "نشط للحالات الإكلينيكية",
-            liteDesc: "محرك فائق السرعة للأسئلة المباشرة، والمختصرات الطبية، والمناقشات السريعة.",
-            speedDesc: "يجمع بين السرعة العالية والدقة الأكاديمية في تفكيك أسئلة الاختيار من متعدد واستبعاد البدائل.",
-            brainDesc: "مخصص لتحليل الحالات السريرية (Clinical Cases) وربط الأعراض بالتحاليل الطبية.",
-            ultraLocked: "🔒 غير متاح حالياً للمستخدمين",
-            ultraUnlocked: "👑 مفعل حالياً",
-            ultraDesc: "الإصدار الأعلى دقة بقدرات الاستنتاج الطبي المتقدم والتشخيص التفريقي الشامل.",
-            promoModalTitle: "🎁 تفعيل كود باقة MEDCORE AI",
-            promoModalSub: "أدخل كود التفعيل المخصص للدفعة:",
-            activateBtn: "تفعيل الكود الآن ✨",
-            scoreModalTitle: "📊 سجل التقدم والدرجات",
-            errorsModalTitle: "⚠️ بنك الأخطاء الذكي",
-            errorsModalSub: "💡 السؤال الذي تجيبه بشكل صحيح مرتين متتاليتين أثناء مراجعة أخطائك يُزال تلقائياً بعد إتقانه.",
-            landmarksModalTitle: "🔖 الأسئلة المحفوظة للمراجعة",
-            notifsModalTitle: "🔔 آخر التحديثات والرسائل",
-            contrModalTitle: "📤 شارك أسئلتك مع الدفعة باسمك"
+            searchPlaceholder: "ابحث بعنوان المحاضرة أو المادة (مثال: فارما 2 أهلية، جيناتكس 3 حكومي، أناتومي)...",
+            aiSearchBtn: "بحث ذكي", browseModulesBtn: "تصفح الموديولات الشاملة", challengeFriendsBtn: "تحدي الأصدقاء في هذه المحاضرة",
+            copyLinkBtn: "نسخ الرابط", resumeNowBtn: "استكمال الاختبار فوراً", startNewBtn: "بدء اختبار جديد",
+            step1Title: "1️⃣ اختر نطاق الاختبار:", scopeAll: "📚 المحاضرة كاملة", scopeErrors: "⚠️ أخطاؤك السابقة في هذه المحاضرة", scopeParts: "🧩 تحديد أجزاء (Parts) معينة",
+            nextBtn: "التالي ➡️", backBtn: "رجوع", step2Title: "2️⃣ عدد الأسئلة المطلوبة:", availableTxt: "المتاح",
+            step3Title: "3️⃣ نظام عرض الإجابات:", modeInstant: "⚡ تصحيح فوري (مع الشرح ومناقشة MEDCORE AI)", modeExam: "📝 نظام امتحان",
+            step4Title: "4️⃣ وقت الاختبار:", timeOpen: "🔓 بدون وقت", timeOfficial: "⏱️ بوقت رسمي (45 ثانية لكل سؤال)",
+            savedBtn: "المحفوظات", finishBtn: "إنهاء", finalResultTitle: "النتيجة النهائية 📊", weakPartsTitle: "⚠️ أجزاء تحتاج مراجعة (أقل من 60%):",
+            shareResultBtn: "مشاركة النتيجة للمنافسة", retryBtn: "إعادة الاختبار", instantDictTitle: "🩺 القاموس والمترجم الطبي الفوري",
+            compModalTitle: "📣 صندوق الشكاوى والاقتراحات", compModalSub: "رسالتك تصل مباشرة لإدارة MEDCORE:", sendBtn: "إرسال الآن ✅",
+            aiSysTitle: "🤖 محركات MEDCORE AI الذكية", aiSysSub: "اختر وضع السرعة أو الدقة العالية:",
+            activeAuto: "متاح فوراً", activeCases: "وضع الدقة العالية",
+            liteDesc: "استجابة لحظية في أقل من ثانية.", speedDesc: "تفكير عمق وتحليل إكلينيكي مفصل.",
+            ultraLocked: "🔒 غير متاح", ultraUnlocked: "👑 مفعل للأدمن", ultraDesc: "دقة فائقة مخصصة للأدمن فقط.",
+            promoModalTitle: "🎁 تفعيل كود باقة MEDCORE AI", promoModalSub: "أدخل كود التفعيل:", activateBtn: "تفعيل الكود الآن ✨",
+            scoreModalTitle: "📊 سجل التقدم والدرجات", errorsModalTitle: "⚠️ بنك الأخطاء الذكي",
+            errorsModalSub: "💡 السؤال الذي تجيبه بشكل صحيح مرتين متتاليتين يُزال تلقائياً.",
+            landmarksModalTitle: "🔖 الأسئلة المحفوظة للمراجعة", notifsModalTitle: "🔔 آخر التحديثات والرسائل", contrModalTitle: "📤 شارك أسئلتك مع الدفعة باسمك"
         },
         en: {
-            labsBtn: "Lab Values",
-            calcBtn: "Calculators",
-            mnemonicBtn: "Mnemonics",
-            termsBtn: "Medical Dictionary",
-            menuBtn: "Menu",
-            sidebarTitle: "🩺 MEDCORE Services",
-            complaintsBtn: "Complaints & Suggestions",
-            notifsBtn: "Updates & Messages",
-            newBadge: "New",
-            arenaBtn: "Medcore Arena (Live Challenge)",
-            modulesBtn: "Comprehensive Modules",
-            errorBankBtn: "Smart Error Bank",
-            scoreHistoryBtn: "Score History",
-            aiModelsBtn: "MEDCORE AI Engines",
-            promoBtn: "Activate Promo Code",
-            contributeBtn: "Share Questions with Batch",
-            close: "✖ Close",
+            labsBtn: "Lab Values", calcBtn: "Calculators", mnemonicBtn: "Mnemonics", termsBtn: "Medical Dictionary", menuBtn: "Menu",
+            sidebarTitle: "🩺 MEDCORE Services", complaintsBtn: "Complaints & Suggestions", notifsBtn: "Updates & Messages", newBadge: "New",
+            arenaBtn: "Medcore Arena (Live Challenge)", modulesBtn: "Comprehensive Modules", errorBankBtn: "Smart Error Bank", scoreHistoryBtn: "Score History",
+            aiModelsBtn: "MEDCORE AI Engines", promoBtn: "Activate Promo Code", contributeBtn: "Share Questions with Batch", close: "✖ Close",
             tgBannerMain: "📢 Official MEDCORE Telegram Channel for Quizzes & Past Papers 🎯 Click Here ✨",
-            prominentCompText: "📣 Have a complaint, scientific note, or suggestion?",
-            prominentCompCta: "Contact Us ✍️",
-            quickModules: "Modules",
-            quickArena: "Live Arena",
-            quickErrors: "Error Bank",
-            quickScores: "My Scores",
-            loadingTitle: "Preparing Medical Content...",
-            loadingSub: "Please wait a moment, Doctor",
+            prominentCompText: "📣 Have a complaint, scientific note, or suggestion?", prominentCompCta: "Contact Us ✍️",
+            quickModules: "Modules", quickArena: "Live Arena", quickErrors: "Error Bank", quickScores: "My Scores",
+            loadingTitle: "Preparing Medical Content...", loadingSub: "Please wait a moment, Doctor",
             welcomeTitle: "Welcome to MEDCORE, Doctor 👨‍⚕️🩺",
-            welcomeSub: "💡 Select any English term during a quiz for instant translation, and use MEDCORE AI to discuss any question.",
+            welcomeSub: "💡 Select any English term during a quiz for instant translation, and use MEDCORE AI streaming chat.",
             searchLabel: "🔍 Search by Lecture Title, Subject, Module, or Batch (SCU/NINU):",
-            searchPlaceholder: "Search by lecture title, subject, or quiz type (e.g. Pharma 2 NINU, Genetics 3 SCU, High yield)...",
-            aiSearchBtn: "AI Search",
-            browseModulesBtn: "Browse Comprehensive Modules",
-            challengeFriendsBtn: "Challenge Friends in this Lecture",
-            copyLinkBtn: "Copy Link",
-            resumeNowBtn: "Resume Quiz Immediately",
-            startNewBtn: "Start New Quiz",
-            step1Title: "1️⃣ Select Quiz Scope:",
-            scopeAll: "📚 Full Lecture",
-            scopeErrors: "⚠️ Your Previous Errors in this Lecture",
-            scopeParts: "🧩 Select Specific Parts",
-            nextBtn: "Next ➡️",
-            backBtn: "Back",
-            step2Title: "2️⃣ Number of Questions:",
-            availableTxt: "Available",
-            step3Title: "3️⃣ Answer Display Mode:",
-            modeInstant: "⚡ Instant Feedback (with Explanation & MEDCORE AI Chat)",
-            modeExam: "📝 Exam Mode (Final Score & Full Review at the End)",
-            step4Title: "4️⃣ Quiz Timer:",
-            timeOpen: "🔓 Untimed (Open Study Mode)",
-            timeOfficial: "⏱️ Official Timer (45 seconds per question)",
-            savedBtn: "Bookmarks",
-            finishBtn: "Finish",
-            finalResultTitle: "Final Result 📊",
-            weakPartsTitle: "⚠️ Parts Needing Review (< 60%):",
-            shareResultBtn: "Share Score to Compete",
-            retryBtn: "Retry Quiz",
-            instantDictTitle: "🩺 Instant Medical Dictionary & Translator",
-            compModalTitle: "📣 Complaints & Suggestions",
-            compModalSub: "Your message goes directly to MEDCORE administration:",
-            sendBtn: "Send Now ✅",
-            aiSysTitle: "🤖 MEDCORE AI Smart Engines",
-            aiSysSub: "The platform automatically selects the optimal medical engine for each question based on clinical complexity:",
-            activeAuto: "Auto-Active",
-            activeCases: "Active for Clinical Cases",
-            liteDesc: "Ultra-fast engine for direct questions, medical mnemonics, and quick discussions.",
-            speedDesc: "Balances high speed with academic accuracy for MCQ analysis and option rule-out.",
-            brainDesc: "Dedicated to complex Clinical Cases and correlating symptoms with lab findings.",
-            ultraLocked: "🔒 Currently unavailable for users",
-            ultraUnlocked: "👑 Currently Active",
-            ultraDesc: "Highest accuracy tier with advanced clinical reasoning and differential diagnosis.",
-            promoModalTitle: "🎁 Activate MEDCORE AI Promo Code",
-            promoModalSub: "Enter your batch activation code:",
-            activateBtn: "Activate Code ✨",
-            scoreModalTitle: "📊 Progress & Score History",
-            errorsModalTitle: "⚠️ Smart Error Bank",
-            errorsModalSub: "💡 Questions answered correctly twice in a row during error review are automatically mastered and removed.",
-            landmarksModalTitle: "🔖 Bookmarked Questions",
-            notifsModalTitle: "🔔 Latest Updates & Messages",
-            contrModalTitle: "📤 Share Questions with Your Batch"
+            searchPlaceholder: "Search by lecture title, subject, or quiz type...",
+            aiSearchBtn: "AI Search", browseModulesBtn: "Browse Comprehensive Modules", challengeFriendsBtn: "Challenge Friends in this Lecture",
+            copyLinkBtn: "Copy Link", resumeNowBtn: "Resume Quiz Immediately", startNewBtn: "Start New Quiz",
+            step1Title: "1️⃣ Select Quiz Scope:", scopeAll: "📚 Full Lecture", scopeErrors: "⚠️ Your Previous Errors in this Lecture", scopeParts: "🧩 Select Specific Parts",
+            nextBtn: "Next ➡️", backBtn: "Back", step2Title: "2️⃣ Number of Questions:", availableTxt: "Available",
+            step3Title: "3️⃣ Answer Display Mode:", modeInstant: "⚡ Instant Feedback (with Stream AI)", modeExam: "📝 Exam Mode",
+            step4Title: "4️⃣ Quiz Timer:", timeOpen: "🔓 Untimed", timeOfficial: "⏱️ Official Timer (45s per question)",
+            savedBtn: "Bookmarks", finishBtn: "Finish", finalResultTitle: "Final Result 📊", weakPartsTitle: "⚠️ Parts Needing Review (< 60%):",
+            shareResultBtn: "Share Score to Compete", retryBtn: "Retry Quiz", instantDictTitle: "🩺 Instant Medical Dictionary & Translator",
+            compModalTitle: "📣 Complaints & Suggestions", compModalSub: "Your message goes directly to MEDCORE administration:", sendBtn: "Send Now ✅",
+            aiSysTitle: "🤖 MEDCORE AI Smart Engines", aiSysSub: "Choose fast stream or high precision:",
+            activeAuto: "Instant Active", activeCases: "High Precision",
+            liteDesc: "Instant sub-second streaming response.", speedDesc: "Deep clinical reasoning.",
+            ultraLocked: "🔒 Unavailable", ultraUnlocked: "👑 Admin Active", ultraDesc: "Highest accuracy tier for admin.",
+            promoModalTitle: "🎁 Activate MEDCORE AI Promo Code", promoModalSub: "Enter your batch activation code:", activateBtn: "Activate Code ✨",
+            scoreModalTitle: "📊 Progress & Score History", errorsModalTitle: "⚠️ Smart Error Bank",
+            errorsModalSub: "💡 Questions answered correctly twice in a row are automatically mastered.",
+            landmarksModalTitle: "🔖 Bookmarked Questions", notifsModalTitle: "🔔 Latest Updates & Messages", contrModalTitle: "📤 Share Questions with Your Batch"
         }
     };
 
@@ -661,7 +539,6 @@
         return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
     }
 
-    // مفتاح الكاش = نص السؤال + الاختيارات (مرتبة أبجدياً) لمنع خلط شرح سؤالين لهما نفس النص
     function qCacheKey(q) {
         const opts = (q.options || []).map(o => stripHTML(String(o))).sort().join('|');
         return hashQuestionKey(q.q + '||' + opts);
@@ -787,11 +664,7 @@
         else { sb.classList.remove('open'); ov.style.display = 'none'; }
     }
 
-    // ==========================================================================
     // محلل أكواد المحاضرات الذكي (MEDCORE Smart ID Decoder)
-    // يفكك أكواد مثل: genatics3scu.quiz3.f1 أو ph2ninu.quiz2.cns
-    // مع اعتماد ph = Pharmacology و phy = Physiology
-    // ==========================================================================
     const MEDCORE_SUBJECT_PREFIXES = [
         { prefix: 'community', en: 'Community',    ar: 'كوميونتي',     keywords: 'community medicine كوميونتي طب مجتمع' },
         { prefix: 'genatics',  en: 'Genetics',     ar: 'جيناتكس',      keywords: 'genetics genatics جيناتكس وراثة وراثه' },
@@ -914,9 +787,6 @@
         }).join('');
     }
 
-    // ==========================================================================
-    // بوابة فتح الأدوات وساحة التحدي عبر new.html (مقفولة على المحاضرة الحالية)
-    // ==========================================================================
     function openHubTool(tabName, extraParams = {}) {
         const overlay = document.getElementById('hub-iframe-overlay');
         const iframe = document.getElementById('hub-iframe-view');
@@ -978,7 +848,6 @@
         openHubTool('arena', { room: roomCode, lecId: currentLecId, lecTitle: state.title || currentLecId });
     }
 
-    // معرف الجهاز وحالة حظر الشات
     let deviceId = localStorage.getItem('mq_device_id');
     if (!deviceId) {
         deviceId = 'DEV-' + Math.random().toString(36).substr(2, 8).toUpperCase();
@@ -1041,18 +910,10 @@
     };
 
     const COMP_MODULES_MAP = [
-        { key: 'GMSK', match: 'gmsk' },
-        { key: 'F3G', match: 'f3g' },
-        { key: 'CNS', match: 'cns' },
-        { key: 'MSK', match: 'msk' },
-        { key: 'RENAL', match: 'renal' },
-        { key: 'NEURO', match: 'neuro' },
-        { key: 'SURGERY', match: 'surgery' },
-        { key: 'TROPICAL', match: 'tropical' },
-        { key: 'RADIOLOGY', match: 'radiology' },
-        { key: 'CARDIO', match: 'cardio' },
-        { key: 'SS', match: 'ss' },
-        { key: 'F3', match: 'f3' }
+        { key: 'GMSK', match: 'gmsk' }, { key: 'F3G', match: 'f3g' }, { key: 'CNS', match: 'cns' },
+        { key: 'MSK', match: 'msk' }, { key: 'RENAL', match: 'renal' }, { key: 'NEURO', match: 'neuro' },
+        { key: 'SURGERY', match: 'surgery' }, { key: 'TROPICAL', match: 'tropical' }, { key: 'RADIOLOGY', match: 'radiology' },
+        { key: 'CARDIO', match: 'cardio' }, { key: 'SS', match: 'ss' }, { key: 'F3', match: 'f3' }
     ];
 
     function setupDynamicTelegramBanner(currentId) {
@@ -1133,9 +994,7 @@
         }
     });
 
-    // ==========================================================================
-    // 1. محرك البحث الصاروخي الذكي (Rocket Fuzzy + Smart ID Decoder + Gemma AI)
-    // ==========================================================================
+    // 1. محرك البحث الصاروخي الذكي
     function normalizeSearchString(str) {
         return String(str || '')
             .toLowerCase()
@@ -1174,7 +1033,6 @@
         const idNorm = normalizeSearchString(item.id || '');
         const fullTarget = `${titleNorm} ${decodedKw} ${partsNorm} ${idNorm}`;
 
-        // 1. تطابق كامل للعبارة في العنوان أو الـ ID أو التفكيك
         if (titleNorm === qNorm || idNorm === qNorm) return 1200;
         if (titleNorm.startsWith(qNorm)) return 950;
         if (titleNorm.includes(qNorm)) return 800;
@@ -1182,7 +1040,6 @@
         if (partsNorm.includes(qNorm)) return 600;
         if (idNorm.includes(qNorm)) return 550;
 
-        // 2. البحث بالكلمات المتفرقة والتقريبية (Token & Fuzzy Matching)
         const qTokens = qNorm.split(' ').filter(Boolean);
         const targetWords = fullTarget.split(' ').filter(Boolean);
         let totalScore = 0;
@@ -1247,7 +1104,6 @@
             } catch (_) {}
         }
 
-        // سحب جميع المحاضرات من Firestore بالكامل بدون حد (No Limit)
         const snap = await db.collection('lectures').get();
         const items = [];
         snap.forEach(d => {
@@ -1394,10 +1250,47 @@
         }
     }
 
-    // ==========================================================================
-    // 2. منظومة MEDCORE AI الذكية (التوجيه التلقائي + الكاش السحابي + الشات + الحظر)
-    // ==========================================================================
-    const OBVIOUS_NON_MEDICAL_REGEX = /(الأهلي|الزمالك|برشلونة|ريال مدريد|مباراة|كورة|انتخابات|سياسة|طبخ|طريقة عمل|نكتة|قولي نكته|كود برمجة|بايثون|جافاسكريبت)/i;
+    // 2. منظومة MEDCORE AI مع البث المباشر (Streaming SSE) واختيار الوضع الثلاثي
+    function getStoredAiMode() {
+        return localStorage.getItem('mq_ai_mode') || 'fast';
+    }
+
+    function setAiMode(mode) {
+        safeSetLocalStorage('mq_ai_mode', mode);
+        document.querySelectorAll('.ai-mode-btn').forEach(b => {
+            b.classList.remove('active-fast', 'active-accurate', 'active-ultra');
+        });
+        document.querySelectorAll(`.ai-mode-btn-${mode}`).forEach(b => {
+            if (mode === 'fast') b.classList.add('active-fast');
+            else if (mode === 'accurate') b.classList.add('active-accurate');
+            else if (mode === 'ultra') b.classList.add('active-ultra');
+        });
+    }
+
+    function renderAiModeSelectorHTML(idx) {
+        const currentMode = getStoredAiMode();
+        const isAdmin = isAdminUltraUnlocked();
+
+        return `
+            <div class="ai-mode-selector" id="ai-mode-sel-${idx}">
+                <button type="button" class="ai-mode-btn ai-mode-btn-fast ${currentMode === 'fast' ? 'active-fast' : ''}" onclick="setQuestionAiMode(${idx}, 'fast')">
+                    ⚡ Fast
+                </button>
+                <button type="button" class="ai-mode-btn ai-mode-btn-accurate ${currentMode === 'accurate' ? 'active-accurate' : ''}" onclick="setQuestionAiMode(${idx}, 'accurate')">
+                    🧠 Brainstorming 2
+                </button>
+                ${isAdmin ? `
+                <button type="button" class="ai-mode-btn ai-mode-btn-ultra ${currentMode === 'ultra' ? 'active-ultra' : ''}" onclick="setQuestionAiMode(${idx}, 'ultra')">
+                    👑 Ultra
+                </button>` : ''}
+            </div>
+        `;
+    }
+
+    function setQuestionAiMode(idx, mode) {
+        setAiMode(mode);
+        requestAiExplanation(idx, null, null);
+    }
 
     async function requestAiExplanation(idx, btn, quickAction = null) {
         const q = state.active[idx];
@@ -1405,13 +1298,13 @@
         const expContent = document.getElementById(`ai-exp-content-${idx}`);
         const badgeEl = document.getElementById(`ai-model-badge-${idx}`);
         const chatWrap = document.getElementById(`ai-chat-wrap-${idx}`);
+        const mode = getStoredAiMode();
 
         panel.style.display = 'block';
         const lang = getAppLang();
-        // v2 key prefix لضمان توليد الشرح بالبرومبت الجديد المركز الخالي من الترجمة الحرفية
-        const qHash = 'v3_' + qCacheKey(q) + (quickAction ? `_${quickAction}` : '_main') + `_${lang}`;
+        const qHash = 'v3_' + qCacheKey(q) + (quickAction ? `_${quickAction}` : '_main') + `_${lang}_${mode}`;
 
-        if (!isAdminUltraUnlocked()) {
+        if (!isAdminUltraUnlocked() && mode !== 'ultra') {
             try {
                 const cacheSnap = await rtdb.ref('ai_explanations_cache/' + qHash).once('value');
                 if (cacheSnap.exists() && cacheSnap.val().text) {
@@ -1426,8 +1319,11 @@
 
         if (btn) btn.disabled = true;
         expContent.innerHTML = lang === 'en'
-            ? `⏳ Analyzing question via MEDCORE AI...`
-            : `⏳ جاري التحليل الطبي عبر محرك MEDCORE AI...`;
+            ? `⏳ Connecting to MEDCORE AI stream...`
+            : `⏳ جاري الاتصال بالبث الحي لـ MEDCORE AI...`;
+        expContent.className = "ai-streaming-cursor";
+
+        let accumulatedText = "";
 
         try {
             const res = await fetch(AI_WORKER_ENDPOINT, {
@@ -1437,22 +1333,51 @@
                     task: quickAction ? 'quick_action' : 'explain',
                     quickAction,
                     lang,
+                    mode,
+                    stream: true,
                     question: stripHTML(q.q),
                     options: q.options || [],
                     correctAnswer: q.a,
                     adminUltraToken: localStorage.getItem('mq_admin_ultra_pass') || ''
                 })
             });
-            const data = await res.json();
-            const replyText = data.explanation || data.reply || data.result || data.text || '';
-            if (data.success && replyText) {
-                const chosenModel = data.medcoreModel || 'Medcore Speed 3.5 🚀';
-                badgeEl.innerText = chosenModel;
-                expContent.innerHTML = escapeHTML(replyText);
 
+            if (!res.ok) throw new Error('Network response was not ok');
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split(/\r?\n\r?/);
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith("data:")) continue;
+                    try {
+                        const jsonPayload = JSON.parse(trimmed.slice(5).trim());
+                        if (jsonPayload.type === "meta") {
+                            badgeEl.innerText = jsonPayload.medcoreModel || 'MEDCORE AI';
+                        } else if (jsonPayload.type === "chunk") {
+                            accumulatedText += jsonPayload.text;
+                            expContent.innerHTML = escapeHTML(accumulatedText);
+                        } else if (jsonPayload.type === "done") {
+                            accumulatedText = jsonPayload.reply || accumulatedText;
+                            expContent.innerHTML = escapeHTML(accumulatedText);
+                        }
+                    } catch (_) {}
+                }
+            }
+
+            expContent.className = "";
+            if (accumulatedText) {
                 rtdb.ref('ai_explanations_cache/' + qHash).set({
-                    text: replyText,
-                    model: chosenModel,
+                    text: accumulatedText,
+                    model: badgeEl.innerText,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 }).catch(() => {});
 
@@ -1460,11 +1385,10 @@
                 rtdb.ref('global_stats/' + todayStr + '/total_questions').set(firebase.database.ServerValue.increment(1)).catch(() => {});
 
                 if (chatWrap) renderAiChatSection(idx);
-            } else {
-                expContent.innerHTML = `<span style="color:var(--error);">❌ ${escapeHTML(data.error || 'تعذر توليد الشرح حالياً')}</span>`;
             }
         } catch (err) {
-            expContent.innerHTML = `<span style="color:var(--error);">❌ ${lang === 'en' ? 'Connection error with MEDCORE AI.' : 'تعذر الاتصال بمحرك MEDCORE AI.'}</span>`;
+            expContent.className = "";
+            expContent.innerHTML = `<span style="color:var(--error);">❌ ${lang === 'en' ? 'Connection error with MEDCORE AI stream.' : 'تعذر الاتصال بخدمة البث الحي لـ MEDCORE AI.'}</span>`;
         } finally {
             if (btn) btn.disabled = false;
         }
@@ -1478,8 +1402,8 @@
         if (isAiChatBanned && !isAdminUltraUnlocked()) {
             chatWrap.innerHTML = `
                 <div class="dynamic-section-box" style="margin:10px 0 0 0; text-align:center; font-size:0.84rem;">
-                    🔒 <b>${lang === 'en' ? 'Interactive chat has been disabled for your account due to repeated non-medical queries.' : 'تم إيقاف ميزة المحادثة التفاعلية لحسابك بسبب الأسئلة خارج النطاق الطبي.'}</b><br>
-                    <small style="color:var(--text-muted);">${lang === 'en' ? 'Device ID:' : 'كود الجهاز للمراجعة:'} <b>${escapeHTML(deviceId)}</b></small>
+                    🔒 <b>${lang === 'en' ? 'Interactive chat has been disabled for your account.' : 'تم إيقاف ميزة المحادثة التفاعلية لحسابك بسبب الأسئلة خارج النطاق الطبي.'}</b><br>
+                    <small style="color:var(--text-muted);">${lang === 'en' ? 'Device ID:' : 'كود الجهاز:'} <b>${escapeHTML(deviceId)}</b></small>
                 </div>
             `;
             return;
@@ -1491,7 +1415,7 @@
         chatWrap.innerHTML = `
             <div style="border-top:1px dashed var(--border); margin-top:12px; padding-top:10px;">
                 <div style="font-size:0.8rem; font-weight:800; color:var(--gold); margin-bottom:6px;">
-                    💬 ${lang === 'en' ? 'Ask MEDCORE AI for more clinical details on this question:' : 'اسأل محرك MEDCORE AI عن أي تفصيلة طبية إضافية في هذا السؤال:'}
+                    💬 ${lang === 'en' ? 'Ask MEDCORE AI for more clinical details:' : 'اسأل محرك MEDCORE AI عن أي تفصيلة طبية إضافية:'}
                 </div>
                 <div class="ai-quick-prompts-row">
                     <button type="button" class="btn-chip" onclick="requestAiExplanation(${idx}, this, 'ruleout')">❓ ${lang === 'en' ? 'Why are other options wrong?' : 'ليه باقي الاختيارات غلط؟'}</button>
@@ -1500,7 +1424,7 @@
                 </div>
                 <div class="ai-chat-history" id="ai-chat-hist-${idx}"></div>
                 <div class="ai-chat-input-row">
-                    <input type="text" id="ai-chat-inp-${idx}" placeholder="${lang === 'en' ? 'Ask a medical question about this case...' : 'اسأل عن أي تفصيلة طبية أو توضيح في هذا السؤال...'}" onkeydown="if(event.key==='Enter') sendAiFollowUpChat(${idx})" style="flex:1; padding:9px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.88rem;">
+                    <input type="text" id="ai-chat-inp-${idx}" placeholder="${lang === 'en' ? 'Ask a medical question about this case...' : 'اسأل عن أي تفصيلة طبية في هذا السؤال...'}" onkeydown="if(event.key==='Enter') sendAiFollowUpChat(${idx})" style="flex:1; padding:9px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.88rem;">
                     <button type="button" id="ai-chat-btn-${idx}" class="btn-nav btn-gold" style="padding:8px 14px;" onclick="sendAiFollowUpChat(${idx})">${lang === 'en' ? 'Send ⬆️' : 'إرسال ⬆️'}</button>
                 </div>
             </div>
@@ -1573,6 +1497,7 @@
 
         inp.value = '';
 
+        const OBVIOUS_NON_MEDICAL_REGEX = /(الأهلي|الزمالك|برشلونة|ريال مدريد|مباراة|كورة|انتخابات|سياسة|طبخ|طريقة عمل|نكتة|قولي نكته|كود برمجة|بايثون|جافاسكريبت)/i;
         if (OBVIOUS_NON_MEDICAL_REGEX.test(msg)) {
             handleOffTopicStrike(idx, msg, histEl);
             return;
@@ -1582,6 +1507,20 @@
         const q = state.active[idx];
         if (!state.chatMemory[idx]) state.chatMemory[idx] = [];
 
+        // إنشاء فقاعة البوت للبث المباشر للشات
+        const uDiv = document.createElement('div');
+        uDiv.className = 'ai-chat-msg-user';
+        uDiv.innerText = msg;
+        histEl.appendChild(uDiv);
+
+        const bDiv = document.createElement('div');
+        bDiv.className = 'ai-chat-msg-bot ai-streaming-cursor';
+        bDiv.innerText = "";
+        histEl.appendChild(bDiv);
+        histEl.scrollTop = histEl.scrollHeight;
+
+        let botReplyStreamText = "";
+
         try {
             const res = await fetch(AI_WORKER_ENDPOINT, {
                 method: 'POST',
@@ -1589,6 +1528,8 @@
                 body: JSON.stringify({
                     task: 'chat',
                     lang: getAppLang(),
+                    mode: getStoredAiMode(),
+                    stream: true,
                     question: stripHTML(q.q),
                     correctAnswer: q.a,
                     userMessage: msg,
@@ -1596,19 +1537,50 @@
                     adminUltraToken: localStorage.getItem('mq_admin_ultra_pass') || ''
                 })
             });
-            const data = await res.json();
-            const replyText = data.reply || data.explanation || data.text || '';
 
-            if (data.offTopic && !isAdminUltraUnlocked()) {
-                handleOffTopicStrike(idx, msg, histEl);
-            } else if (data.success && replyText) {
-                state.chatMemory[idx].push({ u: msg, a: replyText });
-                appendChatBubble(histEl, msg, replyText);
-            } else {
-                appendChatBubble(histEl, msg, data.error || "تعذر الرد حالياً.");
+            if (!res.ok) throw new Error('Network error');
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split(/\r?\n\r?/);
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith("data:")) continue;
+                    try {
+                        const jsonPayload = JSON.parse(trimmed.slice(5).trim());
+                        if (jsonPayload.type === "chunk") {
+                            botReplyStreamText += jsonPayload.text;
+                            bDiv.innerText = botReplyStreamText;
+                            histEl.scrollTop = histEl.scrollHeight;
+                        } else if (jsonPayload.type === "done") {
+                            botReplyStreamText = jsonPayload.reply || botReplyStreamText;
+                            bDiv.innerText = botReplyStreamText;
+                            if (jsonPayload.offTopic && !isAdminUltraUnlocked()) {
+                                bDiv.remove();
+                                uDiv.remove();
+                                handleOffTopicStrike(idx, msg, histEl);
+                                return;
+                            }
+                        }
+                    } catch (_) {}
+                }
+            }
+
+            bDiv.className = 'ai-chat-msg-bot';
+            if (botReplyStreamText) {
+                state.chatMemory[idx].push({ u: msg, a: botReplyStreamText });
             }
         } catch (e) {
-            appendChatBubble(histEl, msg, "تعذر الاتصال بمحرك MEDCORE AI.");
+            bDiv.className = 'ai-chat-msg-bot';
+            bDiv.innerText = "تعذر الاتصال بمحرك MEDCORE AI.";
         } finally {
             btn.disabled = false;
         }
@@ -1635,12 +1607,12 @@
             }).catch(() => {});
 
             renderAiChatSection(idx);
-            showMedAlert("🔒 تم إغلاق ميزة المحادثة التفاعلية لحسابك بسبب تكرار الأسئلة خارج النطاق الطبي للمرة الثانية. سيظل الشرح الأساسي للأسئلة متاحاً لك.");
+            showMedAlert("🔒 تم إغلاق ميزة المحادثة التفاعلية لحسابك بسبب تكرار الأسئلة خارج النطاق الطبي.");
         } else {
             appendChatBubble(
                 histEl,
                 offendingMsg,
-                "⚠️ تنبيه أكاديمي (1/2): محرك MEDCORE AI مخصص للأسئلة والمناقشات الطبية فقط. تكرار الأسئلة خارج النطاق الطبي مرة أخرى سيؤدي لإغلاق ميزة الشات لحسابك تلقائياً.",
+                "⚠️ تنبيه أكاديمي (1/2): محرك MEDCORE AI مخصص للأسئلة والمناقشات الطبية فقط.",
                 true
             );
         }
@@ -1662,7 +1634,7 @@
             const usedCodes = JSON.parse(localStorage.getItem('mq_used_promos') || '[]');
             if (usedCodes.includes(code)) {
                 msg.style.color = 'var(--warning)';
-                msg.innerText = '⚠️ لقد قمت بتفعيل هذا الكود مسبقاً على جهازك.';
+                msg.innerText = '⚠️ لقد قمت بتفعيل هذا الكود مسبقاً.';
                 return;
             }
             await rtdb.ref('promo_codes/' + code + '/activationCount').set(firebase.database.ServerValue.increment(1));
@@ -1677,9 +1649,7 @@
         }
     }
 
-    // ==========================================================================
     // 3. محرك المحاضرات القياسي واستكمال التقدم
-    // ==========================================================================
     function cacheLectureOffline(lecId, data) {
         const key = 'mq_offline_' + lecId.toLowerCase();
         const indexKey = 'mq_offline_lru';
@@ -1744,7 +1714,6 @@
             document.getElementById('lec-title-display').innerText = state.title;
             document.getElementById('all-q-badge').innerText = `(${state.all.length})`;
 
-            // عرض شارات تفكيك الـ ID تحت عنوان المحاضرة في صفحة الكويز أيضاً
             const decoded = decodeMedcoreLectureId(id);
             const badgesContainer = document.getElementById('lec-decoded-badges');
             if (badgesContainer && decoded) {
@@ -2146,7 +2115,8 @@
                     <button type="button" class="btn-chip" style="border-color:var(--gold); color:var(--gold); padding:7px 14px; font-size:0.84rem;" onclick="requestAiExplanation(${idx}, this)">
                         🤖 ${lang === 'en' ? 'Explain & Discuss with MEDCORE AI' : 'اشرح وناقش هذا السؤال مع MEDCORE AI'}
                     </button>
-                    <button type="button" class="btn-chip" onclick="openModal('ai-models-info')" title="MEDCORE AI Engines">ℹ️ ${lang === 'en' ? 'AI Engines' : 'المحركات'}</button>
+                    ${renderAiModeSelectorHTML(idx)}
+                    <button type="button" class="btn-chip" onclick="openModal('ai-models-info')" title="MEDCORE AI Engines">ℹ️</button>
                 </div>
 
                 <div id="ai-panel-${idx}" class="medcore-ai-panel" style="display:none;">
@@ -2393,9 +2363,7 @@
         }, 1000);
     }
 
-    // ==========================================================================
-    // 4. بنك الأخطاء، الدرجات، والأنظمة الفرعية (التجميعات، الشامل، OSPE)
-    // ==========================================================================
+    // 4. بنك الأخطاء، الدرجات، والأنظمة الفرعية
     function saveToErrors(q) {
         let errors = JSON.parse(localStorage.getItem('mq_e') || '[]');
         const existing = errors.find(x => x.q === q.q);
@@ -2673,9 +2641,7 @@
         }
     }
 
-    // ==========================================================================
     // 5. الرادار، الإشعارات، والقاموس الطبي العائم
-    // ==========================================================================
     let unsentSolvedCount = 0;
 
     function incrementSolvedCounter() {
