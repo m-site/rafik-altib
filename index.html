@@ -351,7 +351,15 @@
                 <small style="color:var(--text-muted);" data-i18n="brainDesc">تفكير عمق وتحليل إكلينيكي مفصل للحالات الصعبة مع البث الفوري.</small>
             </div>
 
-            <div class="dynamic-section-box" style="margin-bottom:0;">
+                        <div class="static-section-box" style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b dir="ltr">🤖 Medcore Auto (Smart Select)</b>
+                    <span class="status-pill" style="background:rgba(139,92,246,0.15); color:#a78bfa; border-color:#8b5cf6;">اختيار ذكي</span>
+                </div>
+                <small style="color:var(--text-muted);">يختار تلقائياً Brainstorming للحالات الصعبة وFast للأسئلة السريعة.</small>
+            </div>
+
+<div class="dynamic-section-box" style="margin-bottom:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <b dir="ltr">👑 Medcore Ultra (Admin)</b>
                     <span id="ultra-status-pill" class="status-pill" style="background:var(--error-light); color:var(--error); border-color:var(--error);" data-i18n="ultraLocked">🔒 غير متاح</span>
@@ -1258,12 +1266,13 @@
     function setAiMode(mode) {
         safeSetLocalStorage('mq_ai_mode', mode);
         document.querySelectorAll('.ai-mode-btn').forEach(b => {
-            b.classList.remove('active-fast', 'active-accurate', 'active-ultra');
+            b.classList.remove('active-fast', 'active-accurate', 'active-ultra', 'active-auto');
         });
         document.querySelectorAll(`.ai-mode-btn-${mode}`).forEach(b => {
             if (mode === 'fast') b.classList.add('active-fast');
             else if (mode === 'accurate') b.classList.add('active-accurate');
             else if (mode === 'ultra') b.classList.add('active-ultra');
+            else if (mode === 'auto')     b.classList.add('active-auto');
         });
     }
 
@@ -1277,17 +1286,33 @@
                     ⚡ Fast
                 </button>
                 <button type="button" class="ai-mode-btn ai-mode-btn-accurate ${currentMode === 'accurate' ? 'active-accurate' : ''}" onclick="setQuestionAiMode(${idx}, 'accurate')">
-                    🧠 Brainstorming 2
+                    🧠 Brainstorming
                 </button>
-                ${isAdmin ? `
-                <button type="button" class="ai-mode-btn ai-mode-btn-ultra ${currentMode === 'ultra' ? 'active-ultra' : ''}" onclick="setQuestionAiMode(${idx}, 'ultra')">
+                <button type="button" class="ai-mode-btn ai-mode-btn-auto ${currentMode === 'auto' ? 'active-auto' : ''}" onclick="setQuestionAiMode(${idx}, 'auto')">
+                    🤖 Auto
+                </button>
+                <button type="button"
+                    class="ai-mode-btn ai-mode-btn-ultra ${currentMode === 'ultra' && isAdmin ? 'active-ultra' : ''} ${!isAdmin ? 'ultra-locked' : ''}"
+                    onclick="setQuestionAiMode(${idx}, 'ultra')"
+                    title="${isAdmin ? 'Ultra — أعلى دقة للأدمن' : '🔒 للأدمن فقط'}">
                     👑 Ultra
-                </button>` : ''}
+                </button>
             </div>
         `;
     }
 
     function setQuestionAiMode(idx, mode) {
+        const isAdmin = isAdminUltraUnlocked();
+        if (mode === 'ultra' && !isAdmin) {
+            const expContent = document.getElementById(`ai-exp-content-${idx}`);
+            const panel = document.getElementById(`ai-panel-${idx}`);
+            if (panel) panel.style.display = 'block';
+            if (expContent) {
+                expContent.className = '';
+                expContent.innerHTML = '<span style="color:var(--error); font-weight:800;">🔒 هذا الوضع للأدمن فقط &mdash; اختار وضعاً آخر للمتابعة.</span>';
+            }
+            return;
+        }
         setAiMode(mode);
         requestAiExplanation(idx, null, null);
     }
@@ -1310,7 +1335,7 @@
                 if (cacheSnap.exists() && cacheSnap.val().text) {
                     const cached = cacheSnap.val();
                     badgeEl.innerText = cached.model || 'Medcore Speed 3.5 🚀';
-                    expContent.innerHTML = escapeHTML(cached.text);
+                    expContent.textContent = cached.text;
                     if (chatWrap) renderAiChatSection(idx);
                     return;
                 }
@@ -1351,8 +1376,8 @@
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split(/\r?\n\r?/);
+                                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
                 buffer = lines.pop() || "";
 
                 for (const line of lines) {
@@ -1362,12 +1387,19 @@
                         const jsonPayload = JSON.parse(trimmed.slice(5).trim());
                         if (jsonPayload.type === "meta") {
                             badgeEl.innerText = jsonPayload.medcoreModel || 'MEDCORE AI';
+                            if (jsonPayload.fallback) {
+                                const toast = document.createElement('div');
+                                toast.className = 'ai-fallback-toast';
+                                toast.textContent = '⚡ تم التحويل تلقائياً للوضع السريع';
+                                expContent.parentNode && expContent.parentNode.insertBefore(toast, expContent);
+                                setTimeout(() => toast.remove(), 5000);
+                            }
                         } else if (jsonPayload.type === "chunk") {
                             accumulatedText += jsonPayload.text;
-                            expContent.innerHTML = escapeHTML(accumulatedText);
+                            expContent.textContent = accumulatedText;
                         } else if (jsonPayload.type === "done") {
                             accumulatedText = jsonPayload.reply || accumulatedText;
-                            expContent.innerHTML = escapeHTML(accumulatedText);
+                            expContent.textContent = accumulatedText;
                         }
                     } catch (_) {}
                 }
@@ -1548,7 +1580,7 @@
                 const { done, value } = await reader.read();
                 if (done) break;
                 buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split(/\r?\n\r?/);
+                const lines = buffer.split("\n");
                 buffer = lines.pop() || "";
 
                 for (const line of lines) {

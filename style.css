@@ -934,7 +934,7 @@ body.light-theme .q-progress-header {
     display: inline-block;
 }
 
-/* شريط اختيار وضع الاستجابة (Fast / Accurate Brainstorming 2 / Admin Ultra Precision) */
+/* شريط اختيار وضع الاستجابة (Fast / Brainstorming 2 / Auto / Admin Ultra) */
 .ai-mode-selector {
     display: inline-flex;
     align-items: center;
@@ -992,6 +992,42 @@ body.light-theme .ai-mode-btn.active-accurate {
     border-color: var(--gold);
     font-weight: 900;
     box-shadow: 0 2px 8px rgba(197, 160, 89, 0.35);
+}
+
+/* وضع Auto — بنفسجي */
+.ai-mode-btn.active-auto {
+    background: rgba(139, 92, 246, 0.18);
+    color: #a78bfa;
+    border-color: #8b5cf6;
+    font-weight: 900;
+}
+
+body.light-theme .ai-mode-btn.active-auto {
+    color: #6d28d9;
+}
+
+/* زرار Ultra لغير الأدمن — يظهر مقيداً */
+.ai-mode-btn.ultra-locked {
+    opacity: 0.52;
+    cursor: not-allowed;
+}
+
+.ai-mode-btn.ultra-locked:hover {
+    color: var(--text-muted);
+    border-color: transparent;
+}
+
+/* إشعار Fallback تلقائي من Brainstorming للـ Fast */
+.ai-fallback-toast {
+    display: inline-block;
+    font-size: 0.72rem;
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid var(--success);
+    border-radius: 999px;
+    padding: 2px 9px;
+    margin-top: 4px;
+    font-weight: 700;
 }
 
 /* مؤشر الكتابة المباشر (Gemini Streaming Cursor) */
